@@ -1,1 +1,64 @@
 @import "null";
+@import "vue-select";
+
+// test
+body {
+  background: #626a71 !important;
+}
+
+//<Root>==========================================
+:root {
+  --header: #FFB649;
+  --list-item: #FFE2E2;
+
+  --background-primary: #FFFFFF;
+  --background-secondary: #B649FF;
+  --background-sub: #FFEEB4;
+
+  --font-primary: #000000;
+  --font-secondary: #FFFFFF;
+  --placeholder: rgba(0, 0, 0, 0.5);
+}
+
+//<Elements List>==========================================
+.elist {
+
+  &__header {
+    background: var(--header);
+  }
+  &__title {
+    color: var(--font-primary);
+  }
+  &__content {
+    background: var(--background-primary);
+  }
+}
+//<Item>==========================================
+.eitem {
+  background: var(--background-primary);
+  box-shadow: 0px 3px 4px rgba(0, 0, 0, 0.15);
+
+  transition: all 0.2s;
+  &__nameblock {
+    background: var(--list-item);
+  }
+
+  &:hover {
+    //box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.25), inset 0px -2px 0px 1px rgba(0, 0, 0, 0.15);
+
+    background: #d9d9d9;
+    transition: all 0.2s;
+  }
+}
+
+//<CustomBtn>==========================================
+.cBtn {
+  border-color: var(--font-primary);
+
+  font-family: Reem Kufi;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 14px;
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+}

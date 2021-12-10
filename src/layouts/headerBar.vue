@@ -9,12 +9,8 @@
     HTML DRAG
   </span>
     <div class="headerBar__actions">
-      <button type="button" class="headerBar__btn" @click="hideWin">
-        <span class="headerBar__text">Take a pic</span>
-      </button>
-      <button type="button" class="headerBar__btn" >
-        <span class="headerBar__text">Take a pic</span>
-      </button>
+      <customBtn class="headerBar__btn" :data="{message: 'Take a pic'}" />
+      <customBtn class="headerBar__btn" :data="{message: 'Open list'}" />
     </div>
   </section>
 </template>
@@ -22,20 +18,21 @@
 <script>
 import electron from "electron";
 
+import customBtn from "@/components/customBtn";
+
 export default {
   name: "headerBar",
-  components: {},
+  components: {customBtn},
   data: function () {
     return {
     }
   },
   methods: {
     hideWin() {
-      electron.ipcRenderer.send('service-events', {action: 'hide-win'});
+      electron.ipcRenderer.send('service', {action: 'hide-win'});
     },
     closeWin() {
-      this.$store.commit('setMenuShow', false)
-      electron.ipcRenderer.send('service-events', {action: 'close-win'});
+      electron.ipcRenderer.send('service', {action: 'close-win'});
     },
   },
   computed: {
@@ -51,6 +48,11 @@ export default {
 
 <style lang="scss">
 .headerBar {
+  // test
+  color: white !important;
+  border: 1px solid red;
+  // test
+
   position: relative;
   -webkit-app-region: drag;
   z-index: 9999;
@@ -88,24 +90,18 @@ export default {
   }
 
   &__actions {
-
+    -webkit-app-region: none;
+    display: flex;
+    flex-flow: row;
+    align-items: center;
   }
 
   &__btn {
-    font-family: Reem Kufi;
-    font-style: normal;
-    font-weight: normal;
-    font-size: 14px;
-    line-height: 1.3;
-    letter-spacing: 0.1em;
-
-    border-radius: 0;
+    -webkit-app-region: none;
+    z-index: 1000;
+    margin-left: 16px;
     &:first-of-type {
-      border: solid #000000;
-      border-width: 0 0 1px 0;
-    }
-    &:last-of-type {
-      border: 1px solid #000000;
+      margin-left: 0;
     }
   }
 
