@@ -32,10 +32,23 @@ if (fs.existsSync('styles.json')) {
 
 electron.ipcMain.handle('get', (event, arg) => {
     switch (arg.action) {
-        case 'getElementList':
+        case 'getElementsList':
             return JSON.parse(elements);
         case 'getStylesList':
             return JSON.parse(styles);
+    }
+})
+
+electron.ipcMain.handle('write', (event, arg)=>{
+    switch (arg.action) {
+        case 'writeElementsList':
+            try {
+                fs.writeFileSync('elements.json', JSON.stringify(arg.data), 'utf-8');
+                return true;
+            } catch (e) {
+                console.log('Ошибка во время записи файла: ', e);
+                return false;
+            }
     }
 })
 

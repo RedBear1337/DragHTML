@@ -34,5 +34,6 @@ module.exports = {
 				additionalData: [...bootstrapSassAbstractsImports, ''].join(';\n')
 			}
 		}
-	}
+	},
+	runtimeCompiler: true,
 }

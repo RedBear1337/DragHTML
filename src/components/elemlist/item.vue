@@ -1,12 +1,10 @@
 <template>
-<!--<div class="eitem" :key="item.id" v-for="item in content">-->
-<!--  <div class="eitem__nameblock">-->
-<!--    <span class="eitem__title">{{item.title}}</span>-->
-<!--  </div>-->
-<!--</div>-->
-  <div class="eitem">
+  <div :id="'eitem'+index" class="eitem"
+       draggable="true"
+       @dragstart="dragStart($event)"
+  @dragend="dragEnd($event)">
     <div class="eitem__nameblock">
-      <span class="eitem__title">input</span>
+      <span class="eitem__title">{{title}}</span>
     </div>
   </div>
 </template>
@@ -16,11 +14,40 @@
 export default {
   name: "item",
   components: {},
-  props: ['content'],
+  props: ['item', 'index'],
   data() {
-    return {}
+    return {
+      title: this.item.title,
+      html: this.item.html,
+      style: this.item.style,
+
+      dragged: '',
+    }
   },
-  methods: {},
+  methods: {
+    dragStart(event) {
+      this.dragged = event.target;
+      console.log('event.target', event.target);
+      this.dragged.style.backgroundColor = "red";
+      event.dataTransfer.dropEffect = 'copy';
+      event.dataTransfer.effectAllowed = 'copy';
+
+      event.dataTransfer.setData('title', this.title.trim());
+      event.dataTransfer.setData('html', this.html.trim());
+      event.dataTransfer.setData('style', this.style.trim());
+    },
+    dragEnd(event) {
+      this.dragged = event.target;
+      this.dragged.style.backgroundColor = "";
+    },
+    // elemCreate(htmlCode) {
+    //   let div = document.createElement('div');
+    //   div.innerHTML = htmlCode.trim();
+    //
+    //   // Change this to div.childNodes to support multiple top-level nodes
+    //   return div.firstChild;
+    // },
+  },
   computed: {},
   watch: {},
   mounted() {
@@ -36,6 +63,8 @@ export default {
   flex-flow: row;
   align-items: center;
   height: 34px;
+  margin-bottom: 10px;
+  cursor: grab;
 
   &__nameblock {
     z-index: 1;

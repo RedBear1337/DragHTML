@@ -10,7 +10,7 @@
   </span>
     <div class="headerBar__actions">
       <customBtn class="headerBar__btn" :data="{message: 'Take a pic'}" />
-      <customBtn class="headerBar__btn" :data="{message: 'Open list'}" />
+      <customBtn class="headerBar__btn" :data="{message: 'Open list', func: toggleList}" />
     </div>
   </section>
 </template>
@@ -34,6 +34,9 @@ export default {
     closeWin() {
       electron.ipcRenderer.send('service', {action: 'close-win'});
     },
+    toggleList() {
+      this.$store.commit('toggleShowState', 'elementsList');
+    }
   },
   computed: {
 

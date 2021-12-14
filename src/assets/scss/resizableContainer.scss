@@ -1,0 +1,63 @@
+:root {
+  --sizingBox: rgba(0, 0, 0, 0);
+  --border: red;
+}
+
+.resizable- {
+
+  &r {
+    width: 20px !important;
+  }
+
+  &rb {
+    z-index: 1;
+    background: var(--sizingBox);
+    width: 20px !important;
+    height: 20px !important;
+    border: var(--border) solid;
+    border-width: 0 2px 2px 0;
+  }
+
+  &b {
+    height: 20px !important;
+  }
+
+  &lb {
+    z-index: 1;
+    background: var(--sizingBox);
+    width: 20px !important;
+    height: 20px !important;
+    border: var(--border) solid;
+    border-width: 0 0 2px 2px;
+  }
+
+  &l {
+    width: 20px !important;
+  }
+
+  &lt {
+    z-index: 1;
+    background: var(--sizingBox);
+    width: 20px !important;
+    height: 20px !important;
+    border: var(--border) solid;
+    border-width: 2px 0 0 2px;
+  }
+
+  &t {
+    height: 20px !important;
+  }
+
+  &rt {
+    z-index: 1;
+    background: var(--sizingBox);
+    width: 20px !important;
+    height: 20px !important;
+    border: var(--border) solid;
+    border-width: 2px 2px 0 0;
+  }
+}
+
+//.resizable-component {
+//  background: red;
+//}
