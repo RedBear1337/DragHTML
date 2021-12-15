@@ -1,7 +1,7 @@
 <template>
-  <button class="cBtn" :style="style" @click="data.func()">
+  <button type="button" class="cBtn" :style="style" @click="data.func()">
     <span v-if="!short" class="cBtn__title">{{ data.message }}</span>
-    <img v-else :src="data.img" :alt="data.alt" class="cBtn__icon">
+    <img v-else :src="require(`../assets/svg/${data.img}.svg`)" :alt="data.alt" class="cBtn__icon">
   </button>
 </template>
 
@@ -29,25 +29,27 @@ export default {
             return 'border: 1px solid';
         }
       } else {
-        return 'border: 1px solid'
+        return 'border: 1px solid; max-width: 28px; height: 28px;'
       }
 
     }
   },
   watch: {},
   mounted() {
-
   }
 }
 </script>
 
 <style lang="scss">
+@import "~@/assets/scss/app.scss";
+
 .cBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 28px;
-  width: 85px;
+  width: 100%;
+  max-width: $btn-width;
+  height: $btn-height;
   cursor: pointer;
 }
 </style>

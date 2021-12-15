@@ -1,27 +1,24 @@
 <template>
   <div class="mainPage">
-    <dropZone :size="{w:'100%',h:'200px'}" :id="1"/>
-    <list v-show="IsElementsListShow"/>
+    <eList/>
+    <workSpace/>
   </div>
 </template>
 
 <script>
 import electron from "electron";
 
-import list from '../components/elemlist/list'
-import dropZone from "@/components/drop/dropZone";
+import eList from "@/components/elemlist/eList"
+import workSpace from "@/layouts/workSpace";
+
 export default {
   name: "mainPage",
-  components: {list, dropZone},
+  components: {eList, workSpace},
   data() {
     return {}
   },
   methods: {},
-  computed: {
-    IsElementsListShow() {
-      return this.$store.getters.getIsElementsListShow;
-    },
-  },
+  computed: {},
   watch: {},
   mounted: async function () {
     //**** Закоменчено на время тестов
@@ -36,12 +33,11 @@ export default {
 
 <style lang="scss">
 .mainPage {
-  position: relative;
   display: flex;
-  flex-flow: column;
-  align-items: flex-end;
+  flex-flow: row;
+  align-items: flex-start;
   justify-content: flex-start;
-  height: calc(100vh - 58px);
+  height: 100vh;
   overflow-x: hidden;
 }
 </style>

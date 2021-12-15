@@ -2,25 +2,32 @@
   <div class="elist">
     <div class="elist__header">
       <h1 class="elist__title">ELEMENTS</h1>
-      <customBtn class="elist__btn" :data="{message: 'Add new', func: this.addNew}"/>
-      <v-select :label="'Placeholder'" :options="['Canada', 'United States']"></v-select>
+      <div class="elist__actions">
+        <customBtn class="elist__btn" :short="true" :data="{img: 'add', alt: '+', func: this.addNew}"/>
+        <dropBtn class="elist__btn" :ops="{store: 'eList', placeholder: 'Style', content: cont}" />
+      </div>
     </div>
     <div class="elist__content">
-      <item :item="item" :index="index" :key="item.id" v-for="(item, index) in content"/>
+      <eItem :item="item" :index="index" :key="item.id" v-for="(item, index) in content"/>
     </div>
   </div>
 </template>
 
 <script>
 import electron from "electron";
+import dropBtn from "@/components/dropBtn";
 import customBtn from "@/components/customBtn";
-import item from './item';
+import eItem from './eItem';
 
 export default {
-  name: "list",
-  components: {customBtn, item},
+  name: "eList",
+  components: {dropBtn, customBtn, eItem},
   data() {
-    return {}
+    return {
+      cont: [
+
+      ],
+    }
   },
   methods: {
     /**
@@ -57,28 +64,43 @@ export default {
   },
   watch: {},
   mounted() {
-
+    for (let i = 1; i<21;i++) {
+      this.cont.push(i);
+    }
   }
 }
 </script>
 
 <style lang="scss">
+
 .elist {
-  z-index: 2;
-  position: absolute;
+  z-index: 0;
+  //position: absolute;
   display: flex;
   flex-flow: column;
-  width: 358px;
+  width: 100%;
+  max-width: 228px;
 
   &__header {
     -webkit-user-select: none;
     display: flex;
-    flex-flow: row;
+    flex-flow: column;
     align-items: center;
+    justify-content: flex-start;
+    height: 58px;
   }
 
   &__title {
 
+  }
+  
+  &__actions {
+    display: flex;
+    flex-flow: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 8px 5px;
   }
 
   &__btn {
@@ -88,8 +110,7 @@ export default {
   &__content {
     display: flex;
     flex-flow: column;
-    height: 432px;
-    max-height: 432px;
+    height: calc(100vh - 58px);
     overflow-y: auto;
     padding: 16px 6px;
   }

@@ -35,18 +35,13 @@ export default {
       event.dataTransfer.setData('title', this.title.trim());
       event.dataTransfer.setData('html', this.html.trim());
       event.dataTransfer.setData('style', this.style.trim());
+
+      this.$store.commit('setDataTransfer', {title: this.title.trim(), html: this.html.trim(), style: this.style.trim()});
     },
     dragEnd(event) {
       this.dragged = event.target;
       this.dragged.style.backgroundColor = "";
     },
-    // elemCreate(htmlCode) {
-    //   let div = document.createElement('div');
-    //   div.innerHTML = htmlCode.trim();
-    //
-    //   // Change this to div.childNodes to support multiple top-level nodes
-    //   return div.firstChild;
-    // },
   },
   computed: {},
   watch: {},

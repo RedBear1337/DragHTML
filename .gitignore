@@ -24,3 +24,5 @@ pnpm-debug.log*
 *.sw?
 todo.docx
 /test.js
+~$todo.docx
+~WRL3246.tmp

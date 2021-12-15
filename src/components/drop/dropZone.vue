@@ -1,7 +1,8 @@
 <template>
   <div :ref="'dropZone'+id" :style="`width: ${size.w}; height: ${size.h};`" class="dropZone"
-       @drop="drop($event)"
-       @dragover="$event.preventDefault()">
+       @drop="$event.preventDefault()"
+       @dragenter="drop($event)">
+
     <resizeContainer :node="node" :key="node.id" v-for="node of nodes"/>
   </div>
 </template>
@@ -22,6 +23,38 @@ export default {
     }
   },
   methods: {
+    triggerMouseEvent(eventType) {
+      // const clickEvent = document.createEvent ('MouseEvents');
+      // clickEvent.initEvent (eventType, true, true);
+      // document.body.dispatchEvent(clickEvent);
+
+      const cb = document.body;
+
+      const event = new DragEvent('eventType', {
+        view: window,
+        bubbles: true,
+        cancelable: true
+      });
+      const cancelled = !cb.dispatchEvent(event);
+
+      if (cancelled) {
+        // A handler called preventDefault.
+        console.log('canceled');
+      } else {
+        // None of the handlers called preventDefault.
+        console.log('not canceled');
+      }
+      console.log('triggered');
+    },
+    getTransferData() {
+      let data = this.currentDataTransfer;
+      if (data.title || data.html || data.style) {
+        return data;
+      } else {
+        throw new Error('Ошибка во время получения данных dataTransfer');
+      }
+
+    },
     /**
      * Возвращает преобразованную строку, добавляя указанный класс
      * @param {String} htmlCode - <div class="">...</div>
@@ -36,7 +69,7 @@ export default {
         classCharAt = htmlCode.search('>');
         return htmlCode = htmlCode.slice(0, classCharAt) + ' ' + className + ' ' + htmlCode.slice(classCharAt);
       } else {
-        return new Error('Ошибка при вставке класса. insertClass');
+        throw new Error('Ошибка при вставке класса. insertClass');
       }
       return htmlCode = htmlCode.slice(0, classCharAt) + className + ' ' + htmlCode.slice(classCharAt);
     },
@@ -50,10 +83,12 @@ export default {
         const completeElem = new resizeInstance({
           propsData: {
             size: {w: 'auto', h: 'auto'}
-          }
+          },
+
         });
         let compiledHTML = Vue.compile(htmlCode);
         completeElem.$slots.innerNode = [completeElem.$createElement(compiledHTML)];
+        completeElem._self.$options
         completeElem.$mount();
         this.$refs['dropZone' + this.id].appendChild(completeElem.$el);
       } catch (e) {
@@ -79,6 +114,7 @@ export default {
      * @param {String} styleName - название стиля
      */
     loadRulesForClass(styleName) {
+      console.log('styleName',styleName);
       if (!this.appliedStyles.some(style => style === styleName)) {
         this.$store.commit('addApplied', styleName);
 
@@ -100,13 +136,16 @@ export default {
       let html;
       let style;
       try {
-        title = event.dataTransfer.getData('title');
-        html = event.dataTransfer.getData('html');
-        style = event.dataTransfer.getData('style');
+        let data = this.getTransferData();
+        title = data.title;
+        html = data.html;
+        style = data.style;
       } catch (e) {
-        console.error('Ошибка во время получения переменных для создания элемента: ', e);
+        console.error(e);
         return;
       }
+
+      this.$store.commit('clearDataTransfer');
 
       try {
         html = this.insertClass(html, '--dragMe')
@@ -122,6 +161,20 @@ export default {
         return;
       }
       this.loadRulesForClass(style);
+      // this.triggerMouseEvent('dragend');
+      // this.triggerMouseEvent('drop');
+      // console.log(
+      //     this.$refs['dropZone' + this.id].lastChild.firstChild
+      // );
+      //
+      // // document.documentElement.addEventListener("mouseup", this.handleUp, true);
+      // document.documentElement.addEventListener(
+      //     "mouseup",
+      //     this.handleDown,
+      //     true
+      // );
+
+
     }
   },
   computed: {
@@ -130,6 +183,9 @@ export default {
     },
     appliedStyles() {
       return this.$store.getters.getAppliedStyles;
+    },
+    currentDataTransfer(state) {
+      return this.$store.getters.getDataTransfer;;
     }
   },
   watch: {},
@@ -144,5 +200,8 @@ export default {
   position: relative;
   border: 1px red dashed;
   cursor: alias;
+  //&:-moz-drag-over {
+  //  background: greenyellow;
+  //}
 }
 </style>

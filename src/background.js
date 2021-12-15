@@ -66,7 +66,7 @@ electron.ipcMain.on('service', (event, arg)=>{
 async function createWindow() {
     // Create the browser window.
     win = new BrowserWindow({
-        width: 800,
+        width: 802,
         height: 600,
         frame: false,
         resizable: false,

@@ -1,7 +1,6 @@
 <template>
   <div id="app">
-    <!-- Header Bar -->
-    <headerBar/>
+
 
     <!-- Main content -->
     <router-view/>
@@ -9,10 +8,9 @@
 </template>
 
 <script>
-import headerBar from "@/layouts/headerBar";
 export default {
   name: "app",
-  components: {headerBar},
+  components: {},
   data: function () {
     return {}
   },
@@ -29,7 +27,7 @@ export default {
 @import "~@/assets/scss/vendors/bootstrap-vue/index";
 @import "~@/assets/scss/app.scss";
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
+  //font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
