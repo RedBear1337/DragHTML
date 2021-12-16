@@ -4,6 +4,7 @@ import Vue from 'vue'
 
 import './plugins/bootstrap-vue'
 import './plugins/vue-select'
+import './plugins/vue-drag'
 
 import './assets/scss/app.scss'
 

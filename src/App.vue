@@ -27,6 +27,7 @@ export default {
 @import "~@/assets/scss/vendors/bootstrap-vue/index";
 @import "~@/assets/scss/app.scss";
 #app {
+  -webkit-user-select: none;
   //font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

@@ -25,7 +25,8 @@ export default {
             elements: {
                 test: {
                     htmlCode: '<div class="dragText"><span>Some text</span></div>',
-                    style: 'simple'
+                    style: 'simple',
+                    sizeInPixel: {w: 80, h: 24}
                 },
                 testTable: {
                     htmlCode: '<table class="tg">\n' +
@@ -49,6 +50,7 @@ export default {
                         '</tbody>\n' +
                         '</table>',
                     style: 'table',
+                    sizeInPixel: {w: 276, h: 71}
                 }
             },
             styles: {

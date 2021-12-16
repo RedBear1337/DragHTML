@@ -82,7 +82,6 @@ export default {
   max-width: 228px;
 
   &__header {
-    -webkit-user-select: none;
     display: flex;
     flex-flow: column;
     align-items: center;

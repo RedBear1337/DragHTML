@@ -25,12 +25,44 @@ export default {
     }
   },
   methods: {
+    /**
+     * Рассчитывает центральную позицию элемента на который указывает event.target
+     * @param event
+     * @returns {{w: number, h: number}}
+     */
+    getTargetSize(event) {
+      let w = window.getComputedStyle(event.target, null).width;
+      let h = window.getComputedStyle(event.target, null).height;
+
+      if (isNaN(w) || isNaN(h)) {
+        let numW = '';
+        let numH = '';
+        for (let char = 0; char < w.length; char++) {
+          if (!isNaN(w[char])) {
+            numW+=w[char];
+          }
+        }
+        for (let char = 0; char < h.length; char++) {
+          if (!isNaN(h[char])) {
+            numH+=h[char];
+          }
+        }
+
+        w = w === 'auto' ? 100 : numW;
+        h = h === 'auto' ? 100 : numH;
+      }
+
+      return {w: Math.round(w/2), h: Math.round(h/2)};
+    },
     dragStart(event) {
       this.dragged = event.target;
-      console.log('event.target', event.target);
       this.dragged.style.backgroundColor = "red";
+
+      let imgSize = this.getTargetSize(event)
+
       event.dataTransfer.dropEffect = 'copy';
       event.dataTransfer.effectAllowed = 'copy';
+      event.dataTransfer.setDragImage(event.target, imgSize.w, imgSize.h);
 
       event.dataTransfer.setData('title', this.title.trim());
       event.dataTransfer.setData('html', this.html.trim());

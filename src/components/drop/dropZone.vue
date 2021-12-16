@@ -1,51 +1,62 @@
 <template>
   <div :ref="'dropZone'+id" :style="`width: ${size.w}; height: ${size.h};`" class="dropZone"
-       @drop="$event.preventDefault()"
-       @dragenter="drop($event)">
-
-    <resizeContainer :node="node" :key="node.id" v-for="node of nodes"/>
+       @drop.capture="drop($event)"
+       @dragover.prevent>
   </div>
 </template>
 
 <script>
 import Vue from 'vue'
 
-import resizeContainer from "@/components/drop/resizeContainer";
-import VueResizable from 'vue-resizable'
+import resizableContainer from "@/components/drop/resizableContainer";
 
 export default {
   name: "dropZone",
-  components: {resizeContainer, VueResizable},
+  components: {resizableContainer},
   props: ['id', 'size'],
   data() {
     return {
-      nodes: []
+      nodes: [],
     }
   },
   methods: {
-    triggerMouseEvent(eventType) {
-      // const clickEvent = document.createEvent ('MouseEvents');
-      // clickEvent.initEvent (eventType, true, true);
-      // document.body.dispatchEvent(clickEvent);
+    /**
+     * Не поддерживает % в size
+     * @param event
+     * @param {String | Number} width - ширина размещаемого объекта
+     * @param {String | Number} height - высота размещаемого объекта
+     * @returns {{x: number, y: number}}
+     */
+    getPastePosition(event, width, height) {
+      let x = event.offsetX;
+      let y = event.offsetY;
+      let w = width;
+      let h = height;
 
-      const cb = document.body;
+      if (isNaN(w) || isNaN(h)) {
+        let numW = '';
+        let numH = '';
+        for (let char = 0; char < w.length; char++) {
+          if (!isNaN(w[char])) {
+            numW+=w[char];
+          }
+        }
+        for (let char = 0; char < h.length; char++) {
+          if (!isNaN(h[char])) {
+            numH+=h[char];
+          }
+        }
 
-      const event = new DragEvent('eventType', {
-        view: window,
-        bubbles: true,
-        cancelable: true
-      });
-      const cancelled = !cb.dispatchEvent(event);
-
-      if (cancelled) {
-        // A handler called preventDefault.
-        console.log('canceled');
-      } else {
-        // None of the handlers called preventDefault.
-        console.log('not canceled');
+        w = w === 'auto' ? 100 : numW;
+        h = h === 'auto' ? 100 : numW;
       }
-      console.log('triggered');
+
+      return {x: Math.round(x - w/2), y: Math.round(y - h/2)};
     },
+    /**
+     * Получить dataTransfer
+     * @returns {Object}
+     */
     getTransferData() {
       let data = this.currentDataTransfer;
       if (data.title || data.html || data.style) {
@@ -53,7 +64,6 @@ export default {
       } else {
         throw new Error('Ошибка во время получения данных dataTransfer');
       }
-
     },
     /**
      * Возвращает преобразованную строку, добавляя указанный класс
@@ -76,21 +86,30 @@ export default {
     /**
      * Инициализация и рендер элемента в dropZone
      * @param {String} htmlCode - <div class="">...</div>
+     * @param event
      */
-    initElement(htmlCode) {
-      try {
-        const resizeInstance = Vue.extend(resizeContainer);
-        const completeElem = new resizeInstance({
-          propsData: {
-            size: {w: 'auto', h: 'auto'}
-          },
+    initElement(htmlCode, event) {
+      let w = 100;
+      let h = 100;
 
-        });
+      let completeElem;
+      let replaceMe = document.createElement('div')
+      replaceMe.className = 'replaceMe';
+      this.$refs['dropZone' + this.id].appendChild(replaceMe);
+      try {
+        const resizeInstance = Vue.extend(resizableContainer);
+        completeElem = new resizeInstance (
+            {
+              propsData: {
+                pos: this.getPastePosition(event, w, h)
+              },
+            }
+        );
+
         let compiledHTML = Vue.compile(htmlCode);
+
         completeElem.$slots.innerNode = [completeElem.$createElement(compiledHTML)];
-        completeElem._self.$options
-        completeElem.$mount();
-        this.$refs['dropZone' + this.id].appendChild(completeElem.$el);
+        completeElem.$mount('.replaceMe');
       } catch (e) {
         return e;
       }
@@ -114,7 +133,6 @@ export default {
      * @param {String} styleName - название стиля
      */
     loadRulesForClass(styleName) {
-      console.log('styleName',styleName);
       if (!this.appliedStyles.some(style => style === styleName)) {
         this.$store.commit('addApplied', styleName);
 
@@ -132,6 +150,9 @@ export default {
      */
     drop(event) {
       event.preventDefault();
+
+      console.log('TARGET: ',event.target);
+
       let title;
       let html;
       let style;
@@ -155,26 +176,29 @@ export default {
       }
 
       try {
-        this.initElement(html)
+        // console.log(`
+        // offX: ${event.offsetX}
+        // offY: ${event.offsetY}
+        // pageY: ${event.pageY}
+        // pageX: ${event.pageX}
+        // layerX: ${event.layerX}
+        // layerY: ${event.layerY}
+        // clientX: ${event.clientX}
+        // clientY: ${event.clientY}
+        // screenX: ${event.screenX}
+        // screenY: ${event.screenY}
+        // x: ${event.x}
+        // y: ${event.y}
+        // `);
+        this.initElement(html, event)
       } catch (e) {
         console.error('Ошибка во время инициализации элемента: ', e);
         return;
       }
       this.loadRulesForClass(style);
-      // this.triggerMouseEvent('dragend');
-      // this.triggerMouseEvent('drop');
-      // console.log(
-      //     this.$refs['dropZone' + this.id].lastChild.firstChild
-      // );
-      //
-      // // document.documentElement.addEventListener("mouseup", this.handleUp, true);
-      // document.documentElement.addEventListener(
-      //     "mouseup",
-      //     this.handleDown,
-      //     true
-      // );
 
 
+      let child = this.$refs['dropZone'+this.id].lastChild.lastChild;
     }
   },
   computed: {
@@ -200,8 +224,5 @@ export default {
   position: relative;
   border: 1px red dashed;
   cursor: alias;
-  //&:-moz-drag-over {
-  //  background: greenyellow;
-  //}
 }
 </style>

@@ -23,7 +23,6 @@ export default {
      * @param {Object | String} selected
      */
     setSelected(selected) {
-      console.log('commit', selected);
       this.selected = selected;
       if (!!this.ops.store) {
         this.$store.commit('setSelected', {name: this.ops.store, selected: selected });

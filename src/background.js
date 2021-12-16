@@ -46,7 +46,7 @@ electron.ipcMain.handle('write', (event, arg)=>{
                 fs.writeFileSync('elements.json', JSON.stringify(arg.data), 'utf-8');
                 return true;
             } catch (e) {
-                console.log('Ошибка во время записи файла: ', e);
+                console.error('Ошибка во время записи файла: ', e);
                 return false;
             }
     }
