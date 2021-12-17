@@ -1,7 +1,9 @@
 <template>
-  <div :ref="'dropZone'+id" :style="`width: ${size.w}; height: ${size.h};`" class="dropZone"
-       @drop.capture="drop($event)"
-       @dragover.prevent>
+  <div :ref="'dropZone'+id" :style="`height: ${size.h};`" :id="'zone'+id" class="dropZone"
+       @drop.capture.self="drop($event)"
+       @dragover.prevent
+  @mousemove="mouseAt($event.target)">
+
   </div>
 </template>
 
@@ -17,33 +19,60 @@ export default {
   data() {
     return {
       nodes: [],
+      prev: '',
+
+      // Параметры создания элемента
+      x: 0,
+      y: 0,
+      w: 0,
+      h: 0,
     }
   },
   methods: {
+    mouseAt(target) {
+      // if (target !== this.prev) {
+      //   console.log(target);
+      //   this.prev = target;
+      // }
+    },
+    saveElem(title, id, x, y, w, h) {
+      this.$store.commit('addElem', {
+        zone: 'zone'+this.id, 
+        title: title,
+        id: id,
+        x: x,
+        y: y,
+        w: w,
+        h: h,
+      });
+    },
     /**
-     * Не поддерживает % в size
+     * Возвращает преобразованные координаты. Убирает дробь, округляет до нужной кратности, преобразует строку в число
      * @param event
-     * @param {String | Number} width - ширина размещаемого объекта
-     * @param {String | Number} height - высота размещаемого объекта
+     * @param round - кратность округления.
+     * @param {String | Number} width - ширина размещаемого объекта (не в %)
+     * @param {String | Number} height - высота размещаемого объекта (не в %)
      * @returns {{x: number, y: number}}
      */
-    getPastePosition(event, width, height) {
-      let x = event.offsetX;
-      let y = event.offsetY;
-      let w = width;
-      let h = height;
+    getPastePosition(event, round, width, height) {
+      let x = this.x = event.offsetX;
+      let y = this.y = event.offsetY;
+      let w = this.w = width;
+      let h = this.h = height;
+
+      let response;
 
       if (isNaN(w) || isNaN(h)) {
         let numW = '';
         let numH = '';
         for (let char = 0; char < w.length; char++) {
           if (!isNaN(w[char])) {
-            numW+=w[char];
+            numW += w[char];
           }
         }
         for (let char = 0; char < h.length; char++) {
           if (!isNaN(h[char])) {
-            numH+=h[char];
+            numH += h[char];
           }
         }
 
@@ -51,7 +80,16 @@ export default {
         h = h === 'auto' ? 100 : numW;
       }
 
-      return {x: Math.round(x - w/2), y: Math.round(y - h/2)};
+      // Убрать дробь, округлить согласно кратности
+      response = {
+        x: Math.ceil(
+            Math.round(x - w / 2) / round
+        ) * round,
+        y: Math.ceil(
+            Math.round(y - h / 2) / round
+        ) * round
+      }
+      return response;
     },
     /**
      * Получить dataTransfer
@@ -66,22 +104,78 @@ export default {
       }
     },
     /**
+     * Возвращает позицию первого символа после искомого слова в строке или перед '>';
+     * @param {String} where - где искать
+     * @param {String} which - что искать
+     * @returns {Number | undefined}
+     */
+    searchInHtmlByStr(where, which) {
+      let startCharAt = 0;
+      if (where.search(which) >= 0) {
+        startCharAt = where.search(which) + which.length+1;
+      } else if (where.search('>') >= 0) {
+        startCharAt = where.search('>');
+      } else {
+        return undefined
+      }
+      return startCharAt;
+    },
+    /**
+     * Возвращает преобразованную строку, добавляя указанный атрибут title
+     * @param {String} htmlCode - <div title="">...</div>
+     * @param {String} titleName - название title
+     * @param {number} id - номер id
+     * @returns {String | Error}
+     */
+    insertId(htmlCode, titleName, id) {
+      let idCharAt = this.searchInHtmlByStr(htmlCode, ' id=');
+      if (!idCharAt) {
+        throw new Error('Ошибка при поиске строки. Не найден закрывающий тег. searchInHtmlByStr');
+        return
+      }
+      if (htmlCode[idCharAt] === '>') {
+        return htmlCode = htmlCode.slice(0, idCharAt) + ' id="' + titleName + id + '" ' + htmlCode.slice(idCharAt);
+      } else {
+        return htmlCode = htmlCode.slice(0, idCharAt) + titleName + id + ' ' + htmlCode.slice(idCharAt);
+      }
+    },
+    /**
+     * Возвращает преобразованную строку, добавляя указанный атрибут title
+     * @param {String} htmlCode - <div title="">...</div>
+     * @param {String} titleName - название title
+     * @returns {String | Error}
+     */
+    insertAttr(htmlCode, titleName) {
+      let openTagCharAt = this.searchInHtmlByStr(htmlCode, ' title=');
+      if (!openTagCharAt) {
+        throw new Error('Ошибка при поиске строки. Не найден закрывающий тег. searchInHtmlByStr');
+        return
+      }
+      if (htmlCode[openTagCharAt] === '>') {
+        return htmlCode = htmlCode.slice(0, openTagCharAt) + ' title="' + titleName + '" ' + htmlCode.slice(openTagCharAt);
+      } else {
+        return htmlCode = htmlCode.slice(0, openTagCharAt) + titleName + ' ' + htmlCode.slice(openTagCharAt);
+      }
+
+    },
+    /**
      * Возвращает преобразованную строку, добавляя указанный класс
      * @param {String} htmlCode - <div class="">...</div>
      * @param {String} className - название класса
      * @returns {String | Error}
      */
     insertClass(htmlCode, className) {
-      let classCharAt = 0;
-      if (htmlCode.search('class="') >= 0) {
-        classCharAt = htmlCode.search('class="') + 7;
-      } else if (htmlCode.search('>') >= 0) {
-        classCharAt = htmlCode.search('>');
-        return htmlCode = htmlCode.slice(0, classCharAt) + ' ' + className + ' ' + htmlCode.slice(classCharAt);
+      let classCharAt = this.searchInHtmlByStr(htmlCode, ' class=');
+        if (!classCharAt) {
+          throw new Error('Ошибка при поиске строки. Не найден закрывающий тег. searchInHtmlByStr');
+          return
+        }
+      if (htmlCode[classCharAt] === '>') {
+        return htmlCode = htmlCode.slice(0, classCharAt) + ' class="' + className + '" ' + htmlCode.slice(classCharAt);
       } else {
-        throw new Error('Ошибка при вставке класса. insertClass');
+        return htmlCode = htmlCode.slice(0, classCharAt) + className + ' ' + htmlCode.slice(classCharAt);
       }
-      return htmlCode = htmlCode.slice(0, classCharAt) + className + ' ' + htmlCode.slice(classCharAt);
+
     },
     /**
      * Инициализация и рендер элемента в dropZone
@@ -95,13 +189,13 @@ export default {
       let completeElem;
       let replaceMe = document.createElement('div')
       replaceMe.className = 'replaceMe';
-      this.$refs['dropZone' + this.id].appendChild(replaceMe);
+      this.$el.appendChild(replaceMe);
       try {
         const resizeInstance = Vue.extend(resizableContainer);
-        completeElem = new resizeInstance (
+        completeElem = new resizeInstance(
             {
               propsData: {
-                pos: this.getPastePosition(event, w, h)
+                pos: this.getPastePosition(event, 5, w, h)
               },
             }
         );
@@ -150,8 +244,8 @@ export default {
      */
     drop(event) {
       event.preventDefault();
-
-      console.log('TARGET: ',event.target);
+      console.log('TARGET: ', event.target);
+      let id;
 
       let title;
       let html;
@@ -169,9 +263,26 @@ export default {
       this.$store.commit('clearDataTransfer');
 
       try {
-        html = this.insertClass(html, '--dragMe')
+        html = this.insertClass(html, '--dragMe');
       } catch (e) {
-        console.error(e);
+        console.error('insertClass', e);
+        return;
+      }
+      try {
+        html = this.insertAttr(html, title);
+      } catch (e) {
+        console.error('insertAttr', e);
+        return;
+      }
+      try {
+        if (!this.zoneElements[title]) {
+          this.$store.commit('initTitle', {zone: 'zone'+this.id, title: title});
+        }
+        id = this.zoneElements[title].length;
+
+        html = this.insertId(html, title, id);
+      } catch (e) {
+        console.error('insertId', e);
         return;
       }
 
@@ -195,10 +306,12 @@ export default {
         console.error('Ошибка во время инициализации элемента: ', e);
         return;
       }
+      
       this.loadRulesForClass(style);
 
-
-      let child = this.$refs['dropZone'+this.id].lastChild.lastChild;
+      let child = this.$el.lastChild.lastChild;
+      console.log('title',child.id);
+      this.saveElem(title, id, this.x, this.y, this.w, this.h);
     }
   },
   computed: {
@@ -208,11 +321,30 @@ export default {
     appliedStyles() {
       return this.$store.getters.getAppliedStyles;
     },
-    currentDataTransfer(state) {
-      return this.$store.getters.getDataTransfer;;
+    currentDataTransfer() {
+      return this.$store.getters.getDataTransfer;
+    },
+    isBorderShow() {
+      return this.$store.getters.getIsElemBordersShow;
+    },
+    zoneElements() {
+      return this.$store.getters.getZones['zone'+this.id].elements;
     }
   },
-  watch: {},
+  watch: {
+    isBorderShow(state) {
+      let children = this.$el.childNodes;
+      if (state && children[0]) {
+        for (let childAt = 0; childAt < children.length; childAt++) {
+          children[childAt].classList.add('showBorder');
+        }
+      } else {
+        for (let childAt = 0; childAt < children.length; childAt++) {
+          children[childAt].classList.remove('showBorder');
+        }
+      }
+    },
+  },
   mounted() {
 
   }
@@ -224,5 +356,11 @@ export default {
   position: relative;
   border: 1px red dashed;
   cursor: alias;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.showBorder {
+  box-shadow: inset 0px 0px 0px 5px rgb(255, 0, 0);
 }
 </style>

@@ -29,23 +29,23 @@ export default {
                     sizeInPixel: {w: 80, h: 24}
                 },
                 testTable: {
-                    htmlCode: '<table class="tg">\n' +
+                    htmlCode: '<table class="dragTable">\n' +
                         '<thead>\n' +
                         '  <tr>\n' +
-                        '    <th class="tg-test"></th>\n' +
-                        '    <th class="tg-test"></th>\n' +
-                        '    <th class="tg-test">Тестовый текст</th>\n' +
-                        '    <th class="tg-test"></th>\n' +
-                        '    <th class="tg-test"></th>\n' +
+                        '    <th class="dragTable-test"></th>\n' +
+                        '    <th class="dragTable-test"></th>\n' +
+                        '    <th class="dragTable-test">Тестовый текст</th>\n' +
+                        '    <th class="dragTable-test"></th>\n' +
+                        '    <th class="dragTable-test"></th>\n' +
                         '  </tr>\n' +
                         '</thead>\n' +
                         '<tbody>\n' +
                         '  <tr>\n' +
-                        '    <td class="tg-test"></td>\n' +
-                        '    <td class="tg-test"></td>\n' +
-                        '    <td class="tg-test"></td>\n' +
-                        '    <td class="tg-test"></td>\n' +
-                        '    <td class="tg-test">Не тестовый текст</td>\n' +
+                        '    <td class="dragTable-test"></td>\n' +
+                        '    <td class="dragTable-test"></td>\n' +
+                        '    <td class="dragTable-test"></td>\n' +
+                        '    <td class="dragTable-test"></td>\n' +
+                        '    <td class="dragTable-test">Не тестовый текст</td>\n' +
                         '  </tr>\n' +
                         '</tbody>\n' +
                         '</table>',
@@ -59,10 +59,10 @@ export default {
                 },
                 table: {
                     styleCode: [
-                        {class: '.tg', rules: 'border-collapse: collapse; border-spacing: 0;'},
-                        {class: '.tg td', rules: 'border-color: black; border-style: solid; border-width: 1px; font-family: Arial, sans-serif; font-size: 14px; overflow: hidden; padding:10px 5px; word-break: normal;'},
-                        {class: '.tg th', rules: 'border-color: black; border-style :solid; border-width: 1px; font-family: Arial, sans-serif; font-size: 14px; font-weight: normal; overflow: hidden; padding: 10px 5px; word-break: normal;'},
-                        {class: '.tg .tg-test', rules: 'text-align: left; vertical-align: top'},
+                        {class: '.dragTable', rules: 'border-collapse: collapse; border-spacing: 0;'},
+                        {class: '.dragTable td', rules: 'border-color: black; border-style: solid; border-width: 1px; font-family: Arial, sans-serif; font-size: 14px; overflow: hidden; padding:10px 5px; word-break: normal;'},
+                        {class: '.dragTable th', rules: 'border-color: black; border-style :solid; border-width: 1px; font-family: Arial, sans-serif; font-size: 14px; font-weight: normal; overflow: hidden; padding: 10px 5px; word-break: normal;'},
+                        {class: '.dragTable .dragTable-test', rules: 'text-align: left; vertical-align: top'},
                     ]
                 }
             },

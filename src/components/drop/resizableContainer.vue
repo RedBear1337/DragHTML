@@ -10,7 +10,7 @@
                            @dragging="onDrag" @resizing="onResize"
                            @resizestop="resizeStart"
                            :parent="true"
-                           :grid="[1,1]">
+                           :grid="[5,5]">
     <slot name="innerNode"/>
   </vue-draggable-resizable>
 </template>
@@ -30,11 +30,16 @@ export default {
       x: 0,
       y: 0,
 
-      child: ''
+      child: '',
+      title: '',
+      id: '',
+
+      dropZone: ''
+
     }
   },
   methods: {
-    resizeStart(x,y) {
+    resizeStart(x, y) {
       if (this.width < this.minWidth) {
         // console.log('1');
         this.x = x;
@@ -75,14 +80,30 @@ export default {
       this.y = y
     }
   },
-  computed: {},
+  computed: {
+    element() {
+      // let zones = this.$store.getters.getElements;
+      // console.log('a', zones);
+      let a = 1;
+      // let a = zones[this.dropZone]
+      return a;
+    },
+  },
   watch: {
-    width(value) {
-
+    element(value) {
+      // console.log('e', value);
     }
   },
   mounted() {
     this.child = this.$el.lastChild;
+    this.title = this.child.title;
+    this.id = this.child.id.replace(this.title, '');
+
+    this.dropZone = this.child.parentNode.parentNode.id;
+
+    this.$store.commit('setShowState', {name: 'l', state: true});
+    console.log(this.$store.getters.getL);
+
     this.minWidth = Math.round(this.child.getBoundingClientRect().width);
     this.minHeight = Math.round(this.child.getBoundingClientRect().height);
   }
@@ -93,6 +114,28 @@ export default {
 .vdr {
   border: none;
 }
+
+// Resize Handlers
+// Left
+.handle-tl, .handle-ml, .handle-bl {
+  left: 0;
+}
+
+// Right
+.handle-tr, .handle-mr, .handle-br {
+  right: 0;
+}
+
+// Top
+.handle-tm, .handle-tl, .handle-tr {
+  top: 0;
+}
+
+// Bottom
+.handle-bm, .handle-bl, .handle-br {
+  bottom: 0;
+}
+
 .resizableContainer {
   position: absolute;
   display: flex;

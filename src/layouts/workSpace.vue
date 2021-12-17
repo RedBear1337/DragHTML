@@ -3,7 +3,7 @@
     <!-- Header Bar -->
     <headerBar/>
     <div class="workSpace__content">
-      <dropZone :size="{w:'100%',h:'200px'}" :id="1"/>
+      <dropZone :size="{h:'200px'}" :id="1"/>
     </div>
   </div>
 </template>
@@ -22,7 +22,7 @@ export default {
   computed: {},
   watch: {},
   mounted() {
-
+    this.$store.commit('addZone', {name: 'zone1', y: 0, height: 200});
   }
 }
 </script>
@@ -32,6 +32,7 @@ export default {
   position: relative;
   display: flex;
   flex-flow: column;
+  align-items: center;
   height: calc(100vh - 58px);
   width: 100%;
   overflow-x: hidden;

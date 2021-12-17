@@ -2,9 +2,9 @@
   <div :id="'eitem'+index" class="eitem"
        draggable="true"
        @dragstart="dragStart($event)"
-  @dragend="dragEnd($event)">
+       @dragend="dragEnd($event)">
     <div class="eitem__nameblock">
-      <span class="eitem__title">{{title}}</span>
+      <span class="eitem__title">{{ title }}</span>
     </div>
   </div>
 </template>
@@ -39,12 +39,12 @@ export default {
         let numH = '';
         for (let char = 0; char < w.length; char++) {
           if (!isNaN(w[char])) {
-            numW+=w[char];
+            numW += w[char];
           }
         }
         for (let char = 0; char < h.length; char++) {
           if (!isNaN(h[char])) {
-            numH+=h[char];
+            numH += h[char];
           }
         }
 
@@ -52,7 +52,7 @@ export default {
         h = h === 'auto' ? 100 : numH;
       }
 
-      return {w: Math.round(w/2), h: Math.round(h/2)};
+      return {w: Math.round(w / 2), h: Math.round(h / 2)};
     },
     dragStart(event) {
       this.dragged = event.target;
@@ -68,11 +68,17 @@ export default {
       event.dataTransfer.setData('html', this.html.trim());
       event.dataTransfer.setData('style', this.style.trim());
 
-      this.$store.commit('setDataTransfer', {title: this.title.trim(), html: this.html.trim(), style: this.style.trim()});
+      this.$store.commit('setDataTransfer', {
+        title: this.title.trim(),
+        html: this.html.trim(),
+        style: this.style.trim()
+      });
+      this.$store.commit('setShowState', {name: 'showElemBorders', state: true});
     },
     dragEnd(event) {
       this.dragged = event.target;
       this.dragged.style.backgroundColor = "";
+      this.$store.commit('setShowState', {name: 'showElemBorders', state: false});
     },
   },
   computed: {},
@@ -102,6 +108,7 @@ export default {
     height: 100%;
     padding-left: 6px;
   }
+
   &__title {
     width: 100%;
     color: #000000;
