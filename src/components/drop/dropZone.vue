@@ -309,8 +309,7 @@ export default {
       
       this.loadRulesForClass(style);
 
-      let child = this.$el.lastChild.lastChild;
-      console.log('title',child.id);
+      // let child = this.$el.lastChild.lastChild;
       this.saveElem(title, id, this.x, this.y, this.w, this.h);
     }
   },

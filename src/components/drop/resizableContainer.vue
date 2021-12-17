@@ -100,9 +100,9 @@ export default {
     this.id = this.child.id.replace(this.title, '');
 
     this.dropZone = this.child.parentNode.parentNode.id;
-
-    this.$store.commit('setShowState', {name: 'l', state: true});
-    console.log(this.$store.getters.getL);
+    //
+    // this.$store.commit('setShowState', {name: 'l', state: true});
+    // console.log(this.$store.getters.getL);
 
     this.minWidth = Math.round(this.child.getBoundingClientRect().width);
     this.minHeight = Math.round(this.child.getBoundingClientRect().height);
