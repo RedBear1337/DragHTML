@@ -2,13 +2,14 @@
   <div :ref="'dropZone'+id" :style="`height: ${size.h};`" :id="'zone'+id" class="dropZone"
        @drop.capture.self="drop($event)"
        @dragover.prevent
-  @mousemove="mouseAt($event.target)">
-
+       @mousemove="mouseAt($event.target)">
+<!--    <resizableContainer/>-->
   </div>
 </template>
 
 <script>
 import Vue from 'vue'
+import store from "@/store";
 
 import resizableContainer from "@/components/drop/resizableContainer";
 
@@ -24,8 +25,10 @@ export default {
       // Параметры создания элемента
       x: 0,
       y: 0,
-      w: 0,
-      h: 0,
+      mw: 10,
+      w: 10,
+      mh: 10,
+      h: 10,
     }
   },
   methods: {
@@ -35,14 +38,27 @@ export default {
       //   this.prev = target;
       // }
     },
-    saveElem(title, id, x, y, w, h) {
+    /**
+     *
+     * @param {String} title - название элемента из таблицы элементов (elements)
+     * @param {String} id - порядковый номер размещения элемента (не учитывая позицию в DOM дереве)
+     * @param {String} x - координата внутри зоны
+     * @param {String} y - координата внутри зоны
+     * @param {String} mw - минимальная ширина элемента
+     * @param {String} w - ширина элемента
+     * @param {String} mh - минимальная высота элемента
+     * @param {String} h - высота элемента
+     */
+    saveElem(title, id, x, y, mw, w, mh, h) {
       this.$store.commit('addElem', {
-        zone: 'zone'+this.id, 
+        zone: 'zone' + this.id,
         title: title,
         id: id,
         x: x,
         y: y,
+        mw: mw,
         w: w,
+        mh: mh,
         h: h,
       });
     },
@@ -77,7 +93,7 @@ export default {
         }
 
         w = w === 'auto' ? 100 : numW;
-        h = h === 'auto' ? 100 : numW;
+        h = h === 'auto' ? 100 : numH;
       }
 
       // Убрать дробь, округлить согласно кратности
@@ -112,7 +128,7 @@ export default {
     searchInHtmlByStr(where, which) {
       let startCharAt = 0;
       if (where.search(which) >= 0) {
-        startCharAt = where.search(which) + which.length+1;
+        startCharAt = where.search(which) + which.length + 1;
       } else if (where.search('>') >= 0) {
         startCharAt = where.search('>');
       } else {
@@ -166,10 +182,10 @@ export default {
      */
     insertClass(htmlCode, className) {
       let classCharAt = this.searchInHtmlByStr(htmlCode, ' class=');
-        if (!classCharAt) {
-          throw new Error('Ошибка при поиске строки. Не найден закрывающий тег. searchInHtmlByStr');
-          return
-        }
+      if (!classCharAt) {
+        throw new Error('Ошибка при поиске строки. Не найден закрывающий тег. searchInHtmlByStr');
+        return
+      }
       if (htmlCode[classCharAt] === '>') {
         return htmlCode = htmlCode.slice(0, classCharAt) + ' class="' + className + '" ' + htmlCode.slice(classCharAt);
       } else {
@@ -181,8 +197,9 @@ export default {
      * Инициализация и рендер элемента в dropZone
      * @param {String} htmlCode - <div class="">...</div>
      * @param event
+     * @param title
      */
-    initElement(htmlCode, event) {
+    initElement(htmlCode, event, title) {
       let w = 100;
       let h = 100;
 
@@ -195,8 +212,12 @@ export default {
         completeElem = new resizeInstance(
             {
               propsData: {
-                pos: this.getPastePosition(event, 5, w, h)
+                zone: 'zone'+this.id,
+                title: title,
+                pos: this.getPastePosition(event, 5, w, h),
+                size: {w: w, h: h}
               },
+              store
             }
         );
 
@@ -276,9 +297,13 @@ export default {
       }
       try {
         if (!this.zoneElements[title]) {
-          this.$store.commit('initTitle', {zone: 'zone'+this.id, title: title});
+          this.$store.commit('initTitle', {zone: 'zone' + this.id, title: title});
         }
-        id = this.zoneElements[title].length;
+        if (this.zoneElements[title].length > 0) {
+          id = this.zoneElements[title][this.zoneElements[title].length - 1].id + 1;
+        } else {
+          id = 0;
+        }
 
         html = this.insertId(html, title, id);
       } catch (e) {
@@ -301,16 +326,17 @@ export default {
         // x: ${event.x}
         // y: ${event.y}
         // `);
-        this.initElement(html, event)
+        let coords = this.getPastePosition(event, 5, 100, 100);
+        this.saveElem(title, id, coords.x, coords.y, this.mw, this.w, this.mh, this.h);
+        this.initElement(html, event, title)
       } catch (e) {
         console.error('Ошибка во время инициализации элемента: ', e);
         return;
       }
-      
+
       this.loadRulesForClass(style);
 
       // let child = this.$el.lastChild.lastChild;
-      this.saveElem(title, id, this.x, this.y, this.w, this.h);
     }
   },
   computed: {
@@ -327,7 +353,7 @@ export default {
       return this.$store.getters.getIsElemBordersShow;
     },
     zoneElements() {
-      return this.$store.getters.getZones['zone'+this.id].elements;
+      return this.$store.getters.getZones['zone' + this.id].elements;
     }
   },
   watch: {

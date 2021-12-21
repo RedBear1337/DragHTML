@@ -9,12 +9,24 @@ const zones = {
         elements: {
             // title элемента
             text: [
+                // zone - в какой зоне расположен элемент
                 // id - порядковый номер создания
                 // title - название (title) элемента, он записан в файле elements
                 // x, y - координаты размещения в зоне
+                // mw - minWidth минимальная ширина
                 // w - width (ширина)
+                // mh - minHeight минимальная высота
                 // h - height (высота)
-                {id: '0', x: '10', y: '0', w: '100', h: '100'}
+                {
+                    zone: 'zone1',
+                    id: '0',
+                    x: '10',
+                    y: '0',
+                    mw: '50',
+                    w: '100',
+                    mh: '50',
+                    h: '100'
+                }
             ]
         }
     }
@@ -28,7 +40,8 @@ export default {
              * Объектом с ключами будет надёжнее, тк не придется пересчитывать порядковые номера при смене позиции в дереве.
              * Выше в файле приведен конечный вид объекта
              */
-            zones: {}
+            zones: {},
+            tempMoveJournal: [],
         }
     },
     mutations: {
@@ -60,24 +73,45 @@ export default {
         /**
          * Добавить новый элемент в указанную зону
          * @param state
-         * @param {Object} data
-         * @param {String} data.zone - название формата zone1
-         * @param {String} data.title - название элемента из таблицы элементов (elements)
-         * @param {String} data.id - порядковый номер размещения элемента (не учитывая позицию в DOM дереве)
-         * @param {String} data.x - координата внутри зоны
-         * @param {String} data.y - координата внутри зоны
-         * @param {String} data.w - ширина элемента
-         * @param {String} data.h - высота элемента
+         * @param {Object} elem
+         * @param {String} elem.zone - название формата zone1
+         * @param {String} elem.title - название элемента из таблицы элементов (elements)
+         * @param {String} elem.id - порядковый номер размещения элемента (не учитывая позицию в DOM дереве)
+         * @param {String} elem.x - координата внутри зоны
+         * @param {String} elem.y - координата внутри зоны
+         * @param {String} elem.mw - минимальная ширина элемента
+         * @param {String} elem.w - ширина элемента
+         * @param {String} elem.mh - минимальная высота элемента
+         * @param {String} elem.h - высота элемента
          */
-        addElem(state, data) {
-            if (state.zones[data.zone].elements[data.title]) {
-                state.zones[data.zone].elements[data.title].push(
-                    {id: data.id, x: data.x, y: data.y, w: data.w, h: data.h}
+        addElem(state, elem) {
+            if (state.zones[elem.zone].elements[elem.title]) {
+                state.zones[elem.zone].elements[elem.title].push(
+                    {
+                        zone: elem.zone,
+                        id: elem.id,
+                        x: elem.x,
+                        y: elem.y,
+                        mw: elem.mw,
+                        w: elem.w,
+                        mh: elem.mh,
+                        h: elem.h
+                    }
                 );
             } else {
                 console.error(new Error('Добавить элемент в список элементов не удалось. Указанный список не найден'));
             }
 
+        },
+        /**
+         * Заменяет данные элемента в списке.
+         * @param state
+         * @param elem
+         * @param elem.which - какой
+         * @param elem.to - на что
+         */
+        replaceElem(state, elem) {
+            elem.which = elem.to;
         },
         /**
          * Удалить зону и все элементы внутри
@@ -120,7 +154,7 @@ export default {
          * @param {String} data.y - координата внутри зоны
          */
         setCoords(state, data) {
-            let elem = state.zones[data.zone].elements[data.title].find(elem => elem.id === data.id);
+            let elem = state.zones[data.zone].elements[data.title].find(item => item.id == data.id);
             elem.x = data.x;
             elem.y = data.y;
         },
@@ -135,9 +169,30 @@ export default {
          * @param {String} data.h - высота элемента
          */
         setSize(state, data) {
-            let elem = state.zones[data.zone].elements[data.title].find(elem => elem.id === data.id);
+            let elem = state.zones[data.zone].elements[data.title].find(item => item.id == item.id);
             elem.w = data.w;
             elem.h = data.h;
+        },
+
+        // temporary move
+        /**
+         *
+         * @param state
+         * @param {Object} coords
+         * @param {String | Number} coords.x
+         * @param {String | Number} coords.y
+         * @param {String | Number} coords.w
+         * @param {String | Number} coords.h
+         */
+        saveOnMove(state, obj) {
+            state.tempMoveJournal.unshift(obj)
+        },
+        moveBackByOne(state) {
+            state.currentMove = state.tempMoveJournal.shift();
+            console.log('state.tempMoveJournal', state.tempMoveJournal);
+        },
+        clearMoveJournal(state) {
+            state.tempMoveJournal = [];
         }
     },
     getters: {
@@ -148,6 +203,12 @@ export default {
          */
         getZones(state) {
             return state.zones;
+        },
+        getMoveJournal(state) {
+            return state.tempMoveJournal;
+        },
+        getLastMove(state) {
+            return state.tempMoveJournal[0];
         }
     },
     actions: {}
