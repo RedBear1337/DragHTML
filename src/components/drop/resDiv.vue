@@ -32,6 +32,38 @@ export default {
     }
   },
   methods: {
+    changeCalc(e, rect, property) {
+      const elem = this.$el;
+      switch (property) {
+        case 'wl':
+          const widthL = Math.round(rect.width + (this.posX - e.x));
+          return widthL;
+        case 'wr':
+          const widthR = Math.round(rect.width - (this.posX - e.x));
+          return widthR;
+        case 'ht':
+          const heightT = Math.round(rect.height + (this.posY - e.y));
+          return heightT;
+        case 'hb':
+          const heightB = Math.round(rect.height - (this.posY - e.y));
+          return heightB;
+        case 't':
+          const top = Math.round(elem.offsetTop - (this.posY - e.y));
+          return top;
+        case 'b':
+          let offsetBottom = elem.offsetParent.offsetHeight - elem.offsetHeight - elem.offsetTop;
+          const bottom = Math.round(offsetBottom + (this.posY - e.y));
+          console.log('bottom', bottom);
+          return bottom;
+        case 'l':
+          const left = elem.offsetLeft - (this.posX - e.x);
+          return left;
+        case 'r':
+          const offsetRight = elem.offsetParent.offsetWidth - elem.offsetWidth - elem.offsetLeft;
+          const right = Math.round(offsetRight + (this.posX - e.x));
+          return right;
+      }
+    },
     /**
      * Resize start
      * @param e
@@ -40,8 +72,10 @@ export default {
       e.preventDefault()
       this.curHandler = e.target.classList[1];
 
-      this.posX = e.clientX;
-      this.posY = e.clientY;
+      // this.posX = e.clientX;
+      // this.posY = e.clientY;
+      this.posX = e.x;
+      this.posY = e.y;
       document.addEventListener('mousemove', this.handleOn)
       document.addEventListener('mouseup', this.handleCancel)
     },
@@ -51,69 +85,69 @@ export default {
      */
     handleOn(e) {
       e.preventDefault()
+
       const elem = this.$el;
       const rect = elem.getBoundingClientRect();
       const style = elem.style;
       const width = getComputedStyle(elem).width;
       const height = getComputedStyle(elem).height;
-      console.log(rect.bottom - e.y);
       switch (this.curHandler) {
-        case 'tl'://+
-          if (Math.round(rect.width + (this.posX - e.clientX)) > this.minW && (elem.offsetLeft - (this.posX - e.clientX)) > 0) {
-            style.width = Math.round(rect.width + (this.posX - e.clientX)) + 'px';
-            style.left = Math.round(elem.offsetLeft - (this.posX - e.clientX)) + 'px';
+        case 'tl':
+          if (this.changeCalc(e, rect, 'wl') > this.minW && this.changeCalc(e, rect, 'l') > 0) {
+            style.width = this.changeCalc(e, rect, 'wl') + 'px';
+            style.left = this.changeCalc(e, rect, 'l') + 'px';
           }
-          if (Math.round(rect.height + (this.posY - e.clientY)) > this.minH && (elem.offsetTop - (this.posY - e.clientY)) > 0) {
-            style.height = Math.round(rect.height + (this.posY - e.clientY)) + 'px';
-            style.top = Math.round(elem.offsetTop - (this.posY - e.clientY)) + 'px';
-          }
-          break
-        case 'tm'://+
-          if (Math.round(rect.height + (this.posY - e.clientY)) > this.minH && elem.offsetTop - (this.posY - e.clientY) >= 0) {
-            style.height = Math.round(rect.height + (this.posY - e.clientY)) + 'px';
-            style.top = Math.round(elem.offsetTop - (this.posY - e.clientY)) + 'px';
+          if (this.changeCalc(e, rect, 'ht') > this.minH && this.changeCalc(e, rect, 't') > 0) {
+            style.height = this.changeCalc(e, rect, 'ht') + 'px';
+            style.top = this.changeCalc(e, rect, 't') + 'px';
           }
           break
-        case 'tr'://-
-          if (Math.round(rect.width + (this.posX - e.clientX)) > this.minW && elem.offsetLeft - (this.posX - e.clientX) >= 0) {
-            style.width = Math.round(rect.width - (this.posX - e.clientX)) + 'px';
+        case 'bl':
+          if (this.changeCalc(e, rect, 'wl') > this.minW && this.changeCalc(e, rect, 'l') >= 0) {
+            style.width = this.changeCalc(e, rect, 'wl') + 'px';
+            style.left = this.changeCalc(e, rect, 'l') + 'px';
           }
-          if (Math.round(rect.height + (this.posY - e.clientY)) > this.minH && elem.offsetTop - (this.posY - e.clientY) >= 0) {
-            style.height = Math.round(rect.height + (this.posY - e.clientY)) + 'px';
-            style.top = Math.round(elem.offsetTop - (this.posY - e.clientY)) + 'px';
-          }
-          break
-        case 'mr'://-
-          if (Math.round(rect.width + (this.posX - e.clientX)) > this.minW && elem.offsetLeft - (this.posX - e.clientX)) {
-            style.width = Math.round(rect.width - (this.posX - e.clientX)) + 'px';
+          if (this.changeCalc(e, rect, 'hb') > this.minH && this.changeCalc(e, rect, 'b') >= 0) {
+            style.height = this.changeCalc(e, rect, 'hb') + 'px';
           }
           break
-        case 'br'://-
-          if (Math.round(rect.width + (this.posX - e.clientX)) > this.minW) {
-            style.width = Math.round(rect.width - (this.posX - e.clientX)) + 'px';
-          }
-          if (Math.round(rect.height + (this.posY - e.clientY)) > this.minH) {
-            style.height = Math.round(rect.height - (this.posY - e.clientY)) + 'px';
+        case 'ml':
+          if (this.changeCalc(e, rect, 'wl') > this.minW && this.changeCalc(e, rect, 'l') >= 0) {
+            style.width = this.changeCalc(e, rect, 'wl') + 'px';
+            style.left = this.changeCalc(e, rect, 'l') + 'px';
           }
           break
-        case 'bm'://-
-          if (Math.round(rect.height + (this.posY - e.clientY)) > this.minH) {
-            style.height = Math.round(rect.height - (this.posY - e.clientY)) + 'px';
+        case 'tr':
+          if (this.changeCalc(e, rect, 'wr') > this.minW && this.changeCalc(e, rect, 'r') >= 0) {
+            style.width = this.changeCalc(e, rect, 'wr') + 'px';
+          }
+          if (this.changeCalc(e, rect, 'ht') > this.minH && this.changeCalc(e, rect, 't') >= 0) {
+            style.height = this.changeCalc(e, rect, 'ht') + 'px';
+            style.top = this.changeCalc(e, rect, 't') + 'px';
           }
           break
-        case 'bl'://-
-          if (Math.round(rect.height + (this.posY - e.clientY)) > this.minH && elem.offsetTop >= 0) {
-            style.height = Math.round(rect.height - (this.posY - e.clientY)) + 'px';
-          }
-          if (Math.round(rect.width + (this.posX - e.clientX)) > this.minW && elem.offsetLeft - (this.posX - e.clientX) >= 0) {
-            style.width = Math.round(rect.width + (this.posX - e.clientX)) + 'px';
-            style.left = Math.round(elem.offsetLeft - (this.posX - e.clientX)) + 'px';
+        case 'mr':
+          if (this.changeCalc(e, rect, 'wr') > this.minW && this.changeCalc(e, rect, 'r') > 0) {
+            style.width = this.changeCalc(e, rect, 'wr') + 'px';
           }
           break
-        case 'ml'://+
-          if (Math.round(rect.width + (this.posX - e.clientX)) > this.minW && elem.offsetLeft - (this.posX - e.clientX) >= 0) {
-            style.width = Math.round(rect.width + (this.posX - e.clientX)) + 'px';
-            style.left = Math.round(elem.offsetLeft - (this.posX - e.clientX)) + 'px';
+        case 'br':
+          if (this.changeCalc(e, rect, 'wr') > this.minW && this.changeCalc(e, rect, 'r') > 0) {
+            style.width = this.changeCalc(e, rect, 'wr') + 'px';
+          }
+          if (this.changeCalc(e, rect, 'hb') > this.minH && this.changeCalc(e, rect, 'b') > 0) {
+            style.height = this.changeCalc(e, rect, 'hb') + 'px';
+          }
+          break
+        case 'tm':
+          if (this.changeCalc(e, rect, 'ht') > this.minH && this.changeCalc(e, rect, 't') >= 0) {
+            style.height = this.changeCalc(e, rect, 'ht') + 'px';
+            style.top = this.changeCalc(e, rect, 't') + 'px';
+          }
+          break
+        case 'bm':
+          if (this.changeCalc(e, rect, 'hb') > this.minH && this.changeCalc(e, rect, 'b') > 0) {
+            style.height = this.changeCalc(e, rect, 'hb') + 'px';
           }
           break
       }
