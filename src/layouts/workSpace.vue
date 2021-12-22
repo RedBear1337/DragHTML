@@ -19,7 +19,11 @@ export default {
     return {}
   },
   methods: {},
-  computed: {},
+  computed: {
+    zones() {
+      return this.$store.getters.getZones;
+    }
+  },
   watch: {},
   mounted() {
     this.$store.commit('addZone', {name: 'zone1', y: 0, height: 200});

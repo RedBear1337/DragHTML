@@ -3,7 +3,7 @@
        @drop.capture.self="drop($event)"
        @dragover.prevent
        @mousemove="mouseAt($event.target)">
-<!--    <resizableContainer/>-->
+<resDiv/>
   </div>
 </template>
 
@@ -12,10 +12,11 @@ import Vue from 'vue'
 import store from "@/store";
 
 import resizableContainer from "@/components/drop/resizableContainer";
+import resDiv from "@/components/drop/resDiv";
 
 export default {
   name: "dropZone",
-  components: {resizableContainer},
+  components: {resDiv, resizableContainer},
   props: ['id', 'size'],
   data() {
     return {
@@ -266,6 +267,8 @@ export default {
     drop(event) {
       event.preventDefault();
       console.log('TARGET: ', event.target);
+      let a = document.getElementById(event.target.id);
+      //
       let id;
 
       let title;

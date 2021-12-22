@@ -100,7 +100,6 @@ export default {
     },
     onDragStart() {
       console.log(1);
-      this.$store.commit('saveOnMove', this.currentElem);
     },
     onDragStop(x, y) {
       let collide = false;
@@ -177,7 +176,8 @@ export default {
     this.child = this.$el.lastChild;
     // this.title = this.child.title;
     this.id = this.child.id.replace(this.title, '');
-
+    this.$store.commit('saveOnMove', this.currentElem);
+    console.log('last',this.$store.getters.getLastMove);
     // this.$el.__vue__.width - width
     // this.$el.__vue__.height - height
     // this.$el.__vue__.left - x
