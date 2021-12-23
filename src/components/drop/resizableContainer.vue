@@ -1,8 +1,6 @@
 <template>
   <vue-draggable-resizable class-name="resizableContainer"
                            class-name-draggable="--dragMe"
-                           :min-width="mw"
-                           :min-height="mh"
                            :x="this.pos.x"
                            :y="this.pos.y"
                            :w="this.size.w"
@@ -158,26 +156,24 @@ export default {
     yy() {
       return this.currentElem.y
     },
-    mw() {
-      return this.currentElem.mw
-    },
-    ww() {
-      return this.currentElem.w
-    },
-    mh() {
-      return this.currentElem.mh
-    },
-    hh() {
-      return this.currentElem.h
-    },
+    // mw() {
+    //   return this.currentElem.mw
+    // },
+    // ww() {
+    //   return this.currentElem.w
+    // },
+    // mh() {
+    //   return this.currentElem.mh
+    // },
+    // hh() {
+    //   return this.currentElem.h
+    // },
   },
   watch: {},
   mounted() {
     this.child = this.$el.lastChild;
     // this.title = this.child.title;
     this.id = this.child.id.replace(this.title, '');
-    this.$store.commit('saveOnMove', this.currentElem);
-    console.log('last',this.$store.getters.getLastMove);
     // this.$el.__vue__.width - width
     // this.$el.__vue__.height - height
     // this.$el.__vue__.left - x

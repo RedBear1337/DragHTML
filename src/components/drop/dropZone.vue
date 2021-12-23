@@ -2,8 +2,8 @@
   <div :ref="'dropZone'+id" :style="`height: ${size.h};`" :id="'zone'+id" class="dropZone"
        @drop.capture.self="drop($event)"
        @dragover.prevent
-       @mousemove="mouseAt($event.target)">
-<resDiv/>
+       >
+<!--<resDiv/>-->
   </div>
 </template>
 
@@ -33,36 +33,6 @@ export default {
     }
   },
   methods: {
-    mouseAt(target) {
-      // if (target !== this.prev) {
-      //   console.log(target);
-      //   this.prev = target;
-      // }
-    },
-    /**
-     *
-     * @param {String} title - название элемента из таблицы элементов (elements)
-     * @param {String} id - порядковый номер размещения элемента (не учитывая позицию в DOM дереве)
-     * @param {String} x - координата внутри зоны
-     * @param {String} y - координата внутри зоны
-     * @param {String} mw - минимальная ширина элемента
-     * @param {String} w - ширина элемента
-     * @param {String} mh - минимальная высота элемента
-     * @param {String} h - высота элемента
-     */
-    saveElem(title, id, x, y, mw, w, mh, h) {
-      this.$store.commit('addElem', {
-        zone: 'zone' + this.id,
-        title: title,
-        id: id,
-        x: x,
-        y: y,
-        mw: mw,
-        w: w,
-        mh: mh,
-        h: h,
-      });
-    },
     /**
      * Возвращает преобразованные координаты. Убирает дробь, округляет до нужной кратности, преобразует строку в число
      * @param event
@@ -80,18 +50,8 @@ export default {
       let response;
 
       if (isNaN(w) || isNaN(h)) {
-        let numW = '';
-        let numH = '';
-        for (let char = 0; char < w.length; char++) {
-          if (!isNaN(w[char])) {
-            numW += w[char];
-          }
-        }
-        for (let char = 0; char < h.length; char++) {
-          if (!isNaN(h[char])) {
-            numH += h[char];
-          }
-        }
+        let numW = parseInt(w);
+        let numH = parseInt(h);
 
         w = w === 'auto' ? 100 : numW;
         h = h === 'auto' ? 100 : numH;
@@ -209,12 +169,12 @@ export default {
       replaceMe.className = 'replaceMe';
       this.$el.appendChild(replaceMe);
       try {
-        const resizeInstance = Vue.extend(resizableContainer);
+        const resizeInstance = Vue.extend(resDiv);
         completeElem = new resizeInstance(
             {
               propsData: {
-                zone: 'zone'+this.id,
-                title: title,
+                // zone: 'zone'+this.id,
+                // title: title,
                 pos: this.getPastePosition(event, 5, w, h),
                 size: {w: w, h: h}
               },
@@ -244,6 +204,12 @@ export default {
       document.getElementsByTagName('head')[0].appendChild(style);
     },
 
+    setAttr(titleName, id, style) {
+      this.$el.lastChild.draggable = true;
+      this.$el.lastChild.title = titleName;
+      this.$el.lastChild.id = titleName+id;
+    },
+
     /**
      * Загрузить в head стили для элемента
      * @param {String} styleName - название стиля
@@ -259,7 +225,7 @@ export default {
         }
       }
     },
-
+    
     /**
      * Создаёт элемент в dropZone, основываясь на передаваемых данных.
      * @param event
@@ -267,8 +233,7 @@ export default {
     drop(event) {
       event.preventDefault();
       console.log('TARGET: ', event.target);
-      let a = document.getElementById(event.target.id);
-      //
+
       let id;
 
       let title;
@@ -315,32 +280,17 @@ export default {
       }
 
       try {
-        // console.log(`
-        // offX: ${event.offsetX}
-        // offY: ${event.offsetY}
-        // pageY: ${event.pageY}
-        // pageX: ${event.pageX}
-        // layerX: ${event.layerX}
-        // layerY: ${event.layerY}
-        // clientX: ${event.clientX}
-        // clientY: ${event.clientY}
-        // screenX: ${event.screenX}
-        // screenY: ${event.screenY}
-        // x: ${event.x}
-        // y: ${event.y}
-        // `);
-        let coords = this.getPastePosition(event, 5, 100, 100);
-        this.saveElem(title, id, coords.x, coords.y, this.mw, this.w, this.mh, this.h);
         this.initElement(html, event, title)
       } catch (e) {
         console.error('Ошибка во время инициализации элемента: ', e);
         return;
       }
 
-      this.loadRulesForClass(style);
+      this.setAttr(title, id);
 
-      // let child = this.$el.lastChild.lastChild;
-    }
+      this.loadRulesForClass(style);
+    },
+
   },
   computed: {
     styles() {

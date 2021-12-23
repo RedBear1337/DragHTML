@@ -1,5 +1,5 @@
 <template>
-  <div class="resize" style="width: 100px; height: 100px">
+  <div class="resize" style="width: 100px; height: 100px" @mousedown="showHandlers">
     <div ref="handlers" class="resize__handlers">
       <div class="resize__handler tl"/>
       <div class="resize__handler tm"/>
@@ -10,6 +10,7 @@
       <div class="resize__handler bl"/>
       <div class="resize__handler ml"/>
     </div>
+    <slot name="innerNode"/>
   </div>
 </template>
 
@@ -18,6 +19,7 @@
 export default {
   name: "resDiv",
   components: {},
+  props: ['pos'],
   data() {
     return {
       parentSize: {},
@@ -32,6 +34,23 @@ export default {
     }
   },
   methods: {
+    /**
+     * Снять выделение элемента
+     * @param e
+     */
+    deselect(e) {
+      if (e.target !== this.$refs.handlers) {
+        this.$refs.handlers.classList.remove('active');
+        document.removeEventListener('mousedown', this.deselect)
+      }
+    },
+    /**
+     * Показать ползунки размера
+     */
+    showHandlers() {
+      this.$refs.handlers.classList.add('active');
+      document.addEventListener('mousedown', this.deselect, true)
+    },
     /**
      *
      * @param {MouseEvent} e
@@ -80,21 +99,21 @@ export default {
       const rect = elem.getBoundingClientRect();
       const style = elem.style;
 
-      if (handler[0] === 't' && this.changeCalc(e, rect, 't') > 0 && this.changeCalc(e, rect, 'ht') > this.minH) {
+      if (handler[0] === 't' && this.changeCalc(e, rect, 't') >= 0 && this.changeCalc(e, rect, 'ht') >= this.minH) {
         style.height = this.changeCalc(e, rect, 'ht') + 'px';
         style.top = this.changeCalc(e, rect, 't') + 'px';
       }
-      if (handler[0] === 'b' && this.changeCalc(e, rect, 'b') >= 0 && this.changeCalc(e, rect, 'hb') > this.minH) {
+      if (handler[0] === 'b' && this.changeCalc(e, rect, 'b') >= 0 && this.changeCalc(e, rect, 'hb') >= this.minH) {
         style.height = this.changeCalc(e, rect, 'hb') + 'px';
       }
       if (handler[1]=== 'm') {
         return
       }
-      if (handler[1] === 'l' && this.changeCalc(e, rect, 'l') > 0 && this.changeCalc(e, rect, 'wl') > this.minW) {
+      if (handler[1] === 'l' && this.changeCalc(e, rect, 'l') >= 0 && this.changeCalc(e, rect, 'wl') >= this.minW) {
         style.width = this.changeCalc(e, rect, 'wl') + 'px';
         style.left = this.changeCalc(e, rect, 'l') + 'px';
       }
-      if (handler[1] === 'r' && this.changeCalc(e, rect, 'r') >= 0 && this.changeCalc(e, rect, 'wr') > this.minW) {
+      if (handler[1] === 'r' && this.changeCalc(e, rect, 'r') >= 0 && this.changeCalc(e, rect, 'wr') >= this.minW) {
         style.width = this.changeCalc(e, rect, 'wr') + 'px';
       }
     },
@@ -136,7 +155,9 @@ export default {
   watch: {},
   mounted() {
     this.parentSize = {w: this.$el.parentNode.offsetWidth, h: this.$el.parentNode.offsetHeight};
-
+    this.$el.style.top = this.pos.y + 'px';
+    this.$el.style.left = this.pos.x + 'px';
+    // Добавить расчёт краёв, чтобы предотвратить вылезание при спавне.
     const handlers = this.$refs.handlers.childNodes;
     for (let handler of handlers) {
       handler.addEventListener('mousedown', this.handleDown)
@@ -148,14 +169,20 @@ export default {
 <style lang="scss">
 .resize {
   position: absolute;
-  top: 20px;
-  left: 20px;
-  background: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  //background: black;
 
   &__handlers {
-    position: relative;
+    position: absolute;
+    display: none;
     width: 100%;
     height: 100%;
+
+    &.active {
+      display: block;
+    }
   }
 
   &__handler {
