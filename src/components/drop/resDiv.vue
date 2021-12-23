@@ -32,9 +32,9 @@ export default {
     }
   },
   methods: {
-    changeCalc(e, rect, property) {
+    changeCalc(e, rect, type) {
       const elem = this.$el;
-      switch (property) {
+      switch (type) {
         case 'wl':
           const widthL = Math.round(rect.width + (this.posX - e.x));
           return widthL;
@@ -53,7 +53,6 @@ export default {
         case 'b':
           let offsetBottom = elem.offsetParent.offsetHeight - elem.offsetHeight - elem.offsetTop;
           const bottom = Math.round(offsetBottom + (this.posY - e.y));
-          console.log('bottom', bottom);
           return bottom;
         case 'l':
           const left = elem.offsetLeft - (this.posX - e.x);
@@ -62,6 +61,29 @@ export default {
           const offsetRight = elem.offsetParent.offsetWidth - elem.offsetWidth - elem.offsetLeft;
           const right = Math.round(offsetRight + (this.posX - e.x));
           return right;
+      }
+    },
+    setCalcStylePos(e, type) {
+      const elem = this.$el;
+      const rect = elem.getBoundingClientRect();
+      const style = elem.style;
+
+      if (type[0] === 't' && this.changeCalc(e, rect, 't') > 0 && this.changeCalc(e, rect, 'ht') > this.minH) {
+        style.height = this.changeCalc(e, rect, 'ht') + 'px';
+        style.top = this.changeCalc(e, rect, 't') + 'px';
+      }
+      if (type[0] === 'b' && this.changeCalc(e, rect, 'b') >= 0 && this.changeCalc(e, rect, 'hb') > this.minH) {
+        style.height = this.changeCalc(e, rect, 'hb') + 'px';
+      }
+      if (type[1]=== 'm') {
+        return
+      }
+      if (type[1] === 'l' && this.changeCalc(e, rect, 'l') > 0 && this.changeCalc(e, rect, 'wl') > this.minW) {
+        style.width = this.changeCalc(e, rect, 'wl') + 'px';
+        style.left = this.changeCalc(e, rect, 'l') + 'px';
+      }
+      if (type[1] === 'r' && this.changeCalc(e, rect, 'r') >= 0 && this.changeCalc(e, rect, 'wr') > this.minW) {
+        style.width = this.changeCalc(e, rect, 'wr') + 'px';
       }
     },
     /**
@@ -86,71 +108,7 @@ export default {
     handleOn(e) {
       e.preventDefault()
 
-      const elem = this.$el;
-      const rect = elem.getBoundingClientRect();
-      const style = elem.style;
-      const width = getComputedStyle(elem).width;
-      const height = getComputedStyle(elem).height;
-      switch (this.curHandler) {
-        case 'tl':
-          if (this.changeCalc(e, rect, 'wl') > this.minW && this.changeCalc(e, rect, 'l') > 0) {
-            style.width = this.changeCalc(e, rect, 'wl') + 'px';
-            style.left = this.changeCalc(e, rect, 'l') + 'px';
-          }
-          if (this.changeCalc(e, rect, 'ht') > this.minH && this.changeCalc(e, rect, 't') > 0) {
-            style.height = this.changeCalc(e, rect, 'ht') + 'px';
-            style.top = this.changeCalc(e, rect, 't') + 'px';
-          }
-          break
-        case 'bl':
-          if (this.changeCalc(e, rect, 'wl') > this.minW && this.changeCalc(e, rect, 'l') >= 0) {
-            style.width = this.changeCalc(e, rect, 'wl') + 'px';
-            style.left = this.changeCalc(e, rect, 'l') + 'px';
-          }
-          if (this.changeCalc(e, rect, 'hb') > this.minH && this.changeCalc(e, rect, 'b') >= 0) {
-            style.height = this.changeCalc(e, rect, 'hb') + 'px';
-          }
-          break
-        case 'ml':
-          if (this.changeCalc(e, rect, 'wl') > this.minW && this.changeCalc(e, rect, 'l') >= 0) {
-            style.width = this.changeCalc(e, rect, 'wl') + 'px';
-            style.left = this.changeCalc(e, rect, 'l') + 'px';
-          }
-          break
-        case 'tr':
-          if (this.changeCalc(e, rect, 'wr') > this.minW && this.changeCalc(e, rect, 'r') >= 0) {
-            style.width = this.changeCalc(e, rect, 'wr') + 'px';
-          }
-          if (this.changeCalc(e, rect, 'ht') > this.minH && this.changeCalc(e, rect, 't') >= 0) {
-            style.height = this.changeCalc(e, rect, 'ht') + 'px';
-            style.top = this.changeCalc(e, rect, 't') + 'px';
-          }
-          break
-        case 'mr':
-          if (this.changeCalc(e, rect, 'wr') > this.minW && this.changeCalc(e, rect, 'r') > 0) {
-            style.width = this.changeCalc(e, rect, 'wr') + 'px';
-          }
-          break
-        case 'br':
-          if (this.changeCalc(e, rect, 'wr') > this.minW && this.changeCalc(e, rect, 'r') > 0) {
-            style.width = this.changeCalc(e, rect, 'wr') + 'px';
-          }
-          if (this.changeCalc(e, rect, 'hb') > this.minH && this.changeCalc(e, rect, 'b') > 0) {
-            style.height = this.changeCalc(e, rect, 'hb') + 'px';
-          }
-          break
-        case 'tm':
-          if (this.changeCalc(e, rect, 'ht') > this.minH && this.changeCalc(e, rect, 't') >= 0) {
-            style.height = this.changeCalc(e, rect, 'ht') + 'px';
-            style.top = this.changeCalc(e, rect, 't') + 'px';
-          }
-          break
-        case 'bm':
-          if (this.changeCalc(e, rect, 'hb') > this.minH && this.changeCalc(e, rect, 'b') > 0) {
-            style.height = this.changeCalc(e, rect, 'hb') + 'px';
-          }
-          break
-      }
+      this.setCalcStylePos(e, this.curHandler);
 
       this.posX = e.clientX;
       this.posY = e.clientY;
