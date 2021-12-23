@@ -32,9 +32,16 @@ export default {
     }
   },
   methods: {
-    changeCalc(e, rect, type) {
+    /**
+     *
+     * @param {MouseEvent} e
+     * @param {Object} rect - вычисленные координаты элемента
+     * @param {String} handler - tl, tm, tr, mr, br, bm, bl, ml
+     * @returns {number}
+     */
+    changeCalc(e, rect, handler) {
       const elem = this.$el;
-      switch (type) {
+      switch (handler) {
         case 'wl':
           const widthL = Math.round(rect.width + (this.posX - e.x));
           return widthL;
@@ -63,39 +70,42 @@ export default {
           return right;
       }
     },
-    setCalcStylePos(e, type) {
+    /**
+     * Устанавливает вычисленное местоположение для элемента
+     * @param {MouseEvent} e
+     * @param {String} handler - handler: tl, tm, tr, mr, br, bm, bl, ml
+     */
+    setCalcStylePos(e, handler) {
       const elem = this.$el;
       const rect = elem.getBoundingClientRect();
       const style = elem.style;
 
-      if (type[0] === 't' && this.changeCalc(e, rect, 't') > 0 && this.changeCalc(e, rect, 'ht') > this.minH) {
+      if (handler[0] === 't' && this.changeCalc(e, rect, 't') > 0 && this.changeCalc(e, rect, 'ht') > this.minH) {
         style.height = this.changeCalc(e, rect, 'ht') + 'px';
         style.top = this.changeCalc(e, rect, 't') + 'px';
       }
-      if (type[0] === 'b' && this.changeCalc(e, rect, 'b') >= 0 && this.changeCalc(e, rect, 'hb') > this.minH) {
+      if (handler[0] === 'b' && this.changeCalc(e, rect, 'b') >= 0 && this.changeCalc(e, rect, 'hb') > this.minH) {
         style.height = this.changeCalc(e, rect, 'hb') + 'px';
       }
-      if (type[1]=== 'm') {
+      if (handler[1]=== 'm') {
         return
       }
-      if (type[1] === 'l' && this.changeCalc(e, rect, 'l') > 0 && this.changeCalc(e, rect, 'wl') > this.minW) {
+      if (handler[1] === 'l' && this.changeCalc(e, rect, 'l') > 0 && this.changeCalc(e, rect, 'wl') > this.minW) {
         style.width = this.changeCalc(e, rect, 'wl') + 'px';
         style.left = this.changeCalc(e, rect, 'l') + 'px';
       }
-      if (type[1] === 'r' && this.changeCalc(e, rect, 'r') >= 0 && this.changeCalc(e, rect, 'wr') > this.minW) {
+      if (handler[1] === 'r' && this.changeCalc(e, rect, 'r') >= 0 && this.changeCalc(e, rect, 'wr') > this.minW) {
         style.width = this.changeCalc(e, rect, 'wr') + 'px';
       }
     },
     /**
      * Resize start
-     * @param e
+     * @param {MouseEvent} e
      */
     handleDown(e) {
       e.preventDefault()
       this.curHandler = e.target.classList[1];
 
-      // this.posX = e.clientX;
-      // this.posY = e.clientY;
       this.posX = e.x;
       this.posY = e.y;
       document.addEventListener('mousemove', this.handleOn)
@@ -103,19 +113,19 @@ export default {
     },
     /**
      * Resize func
-     * @param e
+     * @param {MouseEvent} e
      */
     handleOn(e) {
       e.preventDefault()
 
       this.setCalcStylePos(e, this.curHandler);
 
-      this.posX = e.clientX;
-      this.posY = e.clientY;
+      this.posX = e.x;
+      this.posY = e.y;
     },
     /**
      * Resize cancel
-     * @param e
+     * @param {MouseEvent} e
      */
     handleCancel(e) {
       document.removeEventListener('mousemove', this.handleOn)
