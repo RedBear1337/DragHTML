@@ -12,17 +12,13 @@ import Vue from 'vue'
 import store from "@/store";
 
 import resizableContainer from "@/components/drop/resizableContainer";
-import resDiv from "@/components/drop/resDiv";
 
 export default {
   name: "dropZone",
-  components: {resDiv, resizableContainer},
+  components: {resizableContainer},
   props: ['id', 'size'],
   data() {
     return {
-      nodes: [],
-      prev: '',
-
       // Параметры создания элемента
       x: 0,
       y: 0,
@@ -33,6 +29,7 @@ export default {
     }
   },
   methods: {
+    // Get methods
     /**
      * Возвращает преобразованные координаты. Убирает дробь, округляет до нужной кратности, преобразует строку в число
      * @param event
@@ -80,6 +77,8 @@ export default {
         throw new Error('Ошибка во время получения данных dataTransfer');
       }
     },
+
+    // Insert methods
     /**
      * Возвращает позицию первого символа после искомого слова в строке или перед '>';
      * @param {String} where - где искать
@@ -133,27 +132,9 @@ export default {
       } else {
         return htmlCode = htmlCode.slice(0, openTagCharAt) + titleName + ' ' + htmlCode.slice(openTagCharAt);
       }
-
     },
-    /**
-     * Возвращает преобразованную строку, добавляя указанный класс
-     * @param {String} htmlCode - <div class="">...</div>
-     * @param {String} className - название класса
-     * @returns {String | Error}
-     */
-    insertClass(htmlCode, className) {
-      let classCharAt = this.searchInHtmlByStr(htmlCode, ' class=');
-      if (!classCharAt) {
-        throw new Error('Ошибка при поиске строки. Не найден закрывающий тег. searchInHtmlByStr');
-        return
-      }
-      if (htmlCode[classCharAt] === '>') {
-        return htmlCode = htmlCode.slice(0, classCharAt) + ' class="' + className + '" ' + htmlCode.slice(classCharAt);
-      } else {
-        return htmlCode = htmlCode.slice(0, classCharAt) + className + ' ' + htmlCode.slice(classCharAt);
-      }
 
-    },
+    // Init Methods
     /**
      * Инициализация и рендер элемента в dropZone
      * @param {String} htmlCode - <div class="">...</div>
@@ -169,7 +150,7 @@ export default {
       replaceMe.className = 'replaceMe';
       this.$el.appendChild(replaceMe);
       try {
-        const resizeInstance = Vue.extend(resDiv);
+        const resizeInstance = Vue.extend(resizableContainer);
         completeElem = new resizeInstance(
             {
               propsData: {
@@ -190,7 +171,11 @@ export default {
         return e;
       }
     },
+    initDraggable() {
+      // Вешать на клик draggable или на mouseDown
+    },
 
+    // Style load Methods
     /**
      * Создать класс и добавить его в head
      * @param {String} className - название класса
@@ -203,13 +188,6 @@ export default {
           `${rules} }`;
       document.getElementsByTagName('head')[0].appendChild(style);
     },
-
-    setAttr(titleName, id, style) {
-      this.$el.lastChild.draggable = true;
-      this.$el.lastChild.title = titleName;
-      this.$el.lastChild.id = titleName+id;
-    },
-
     /**
      * Загрузить в head стили для элемента
      * @param {String} styleName - название стиля
@@ -223,9 +201,21 @@ export default {
         for (let item of classes) {
           this.createClass(item.class, item.rules);
         }
+      } else {
+        throw new Error(`style: ${styleName} не найден`)
       }
     },
-    
+
+    setAttr(titleName, id) {
+      if (titleName || id) {
+        this.$el.lastChild.draggable = true;
+        this.$el.lastChild.title = titleName;
+        this.$el.lastChild.id = titleName+id;
+      } else {
+        throw new Error('Один из передаваемых аргументов - undefined');
+      }
+    },
+
     /**
      * Создаёт элемент в dropZone, основываясь на передаваемых данных.
      * @param event
@@ -251,12 +241,6 @@ export default {
 
       this.$store.commit('clearDataTransfer');
 
-      try {
-        html = this.insertClass(html, '--dragMe');
-      } catch (e) {
-        console.error('insertClass', e);
-        return;
-      }
       try {
         html = this.insertAttr(html, title);
       } catch (e) {
@@ -286,9 +270,18 @@ export default {
         return;
       }
 
-      this.setAttr(title, id);
+      try {
+        this.setAttr(title, id);
+      } catch (e) {
+        console.error('Ошибка при установке аттрибутов: ', e);
+      }
 
-      this.loadRulesForClass(style);
+      try {
+        this.loadRulesForClass(style);  
+      } catch (e) {
+        console.error('Ошибка при загрузке стилей: ', e);
+      }
+      
     },
 
   },

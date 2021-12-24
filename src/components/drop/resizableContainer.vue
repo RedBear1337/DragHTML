@@ -1,18 +1,17 @@
 <template>
-  <vue-draggable-resizable class-name="resizableContainer"
-                           class-name-draggable="--dragMe"
-                           :x="this.pos.x"
-                           :y="this.pos.y"
-                           :w="this.size.w"
-                           :h="this.size.h"
-                           :onDragStart="onDragStart"
-                           @activated="showBorders(true)"
-                           @deactivated="showBorders(false)"
-                           @dragstop="onDragStop" @resizestop="onResizeStop"
-                           :parent="true"
-                           :grid="[5,5]">
+  <div class="resize" style="width: 100px; height: 100px" @mousedown="showHandlers">
+    <div ref="handlers" class="resize__handlers">
+      <div class="resize__handler tl"/>
+      <div class="resize__handler tm"/>
+      <div class="resize__handler tr"/>
+      <div class="resize__handler mr"/>
+      <div class="resize__handler br"/>
+      <div class="resize__handler bm"/>
+      <div class="resize__handler bl"/>
+      <div class="resize__handler ml"/>
+    </div>
     <slot name="innerNode"/>
-  </vue-draggable-resizable>
+  </div>
 </template>
 
 <script>
@@ -20,211 +19,232 @@
 export default {
   name: "resizableContainer",
   components: {},
-  props: ['zone', 'title', 'pos', 'size'],
+  props: ['pos'],
   data() {
     return {
-      ready: false,
+      parentSize: {},
+      minW: 30,
+      minH: 30,
+      posX: 0,
+      posY: 0,
 
-      child: '',
-      id: '',
-      x: 0,
-      y: 0,
-      w: 0,
-      h: 0
+      curHandler: 'tl',
+
+      isHandle: false,
     }
   },
   methods: {
-    showBorders(boolean) {
-      this.$store.commit('setShowState', {name: 'showElemBorders', state: boolean});
+    /**
+     * Снять выделение элемента
+     * @param e
+     */
+    deselect(e) {
+      if (e.target !== this.$refs.handlers) {
+        this.$refs.handlers.classList.remove('active');
+        document.removeEventListener('mousedown', this.deselect)
+      }
     },
-    isCollide(a, b) {
-      return !(
-          ((a.y + a.h) < (b.y)) ||
-          (a.y > (b.y + b.h)) ||
-          ((a.x + a.w) < b.x) ||
-          (a.x > (b.x + b.w))
-      );
+    /**
+     * Показать ползунки размера
+     */
+    showHandlers() {
+      this.$refs.handlers.classList.add('active');
+      document.addEventListener('mousedown', this.deselect, true)
     },
     /**
      *
-     * @param obj - размещаемый объект
-     * @param obj.title - название размещаемого объекта
-     * @param obj.id - номер размещаемого объекта
-     * @param obj.x - координата from left
-     * @param obj.y - координата from top
-     * @param obj.w - шир
-     * @param obj.h - выс
+     * @param {MouseEvent} e
+     * @param {Object} rect - вычисленные координаты элемента
+     * @param {String} handler - tl, tm, tr, mr, br, bm, bl, ml
+     * @returns {number}
      */
-    checkPlaceFreedom(obj) {
-      let result = false;
-      let allElements = this.elements;
-      let keys = Object.keys(allElements);
-      for (let titleCount = 0; titleCount < keys.length; titleCount++) {
-        let checkElements = allElements[keys[titleCount]].filter(elem=>elem !== this.currentElem);
-         for (let elemCount = 0; elemCount < checkElements.length; elemCount++) {
-           let checkObj = checkElements[elemCount];
-           checkObj.title = keys[titleCount];
-           console.log(`obj: ${obj.title} | ${obj.id} => check: ${checkObj.title} | ${checkObj.id}`);
-           console.log(`x1: ${obj.x}, y1: ${obj.y} => x2: ${checkObj.x}, y2: ${checkObj.y}`);
-             let result = this.isCollide(obj, checkObj);
-             if (result) {
-               console.log('Столкновение!');
-               return result
-             }
-           // console.log(`title: ${obj.title} id: ${obj.id}`);
-         }
+    changeCalc(e, rect, handler) {
+      const elem = this.$el;
+      switch (handler) {
+        case 'wl':
+          const widthL = Math.round(rect.width + (this.posX - e.x));
+          return widthL;
+        case 'wr':
+          const widthR = Math.round(rect.width - (this.posX - e.x));
+          return widthR;
+        case 'ht':
+          const heightT = Math.round(rect.height + (this.posY - e.y));
+          return heightT;
+        case 'hb':
+          const heightB = Math.round(rect.height - (this.posY - e.y));
+          return heightB;
+        case 't':
+          const top = Math.round(elem.offsetTop - (this.posY - e.y));
+          return top;
+        case 'b':
+          let offsetBottom = elem.offsetParent.offsetHeight - elem.offsetHeight - elem.offsetTop;
+          const bottom = Math.round(offsetBottom + (this.posY - e.y));
+          return bottom;
+        case 'l':
+          const left = elem.offsetLeft - (this.posX - e.x);
+          return left;
+        case 'r':
+          const offsetRight = elem.offsetParent.offsetWidth - elem.offsetWidth - elem.offsetLeft;
+          const right = Math.round(offsetRight + (this.posX - e.x));
+          return right;
       }
-      return result;
     },
-    onResizeStop(x, y, w, h) {
-      this.x = x;
-      this.y = y;
-      this.w = w;
-      this.h = h;
-      this.$store.commit('setCoords', {
-        zone: this.zone,
-        title: this.title,
-        id: this.id,
-        x: x,
-        y: y
-      });
-      this.$store.commit('setSize', {
-        zone: this.zone,
-        title: this.title,
-        id: this.id,
-        w: w,
-        h: h
-      });
-    },
-    onDragStart() {
-      console.log(1);
-    },
-    onDragStop(x, y) {
-      let collide = false;
-      const curElem = {title: this.title, id: this.id, x: x, y: y, w: this.w, h: this.h};
-      if (Object.keys(this.elements).length > 1 || this.elemTitle.length > 1) {
-        collide = this.checkPlaceFreedom(curElem);
-      }
-      if (!collide) {
-        console.log('Перетаскивание успешно');
-        console.log(2);
-        this.$store.commit('saveOnMove', this.currentElem);
-        this.x = x;
-        this.y = y;
-        this.$store.commit('setCoords', {
-          zone: this.zone,
-          title: this.title,
-          id: this.id,
-          x: x,
-          y: y
-        });
-      } else {
-        // console.log('last', this.$store.getters.getLastMove);
-        // let lastState = this.$store.getters.getLastMove;
-        // console.log('before',this.$el.__vue__);
-        // this.$store.commit('replaceElem', {this});
-        this.$el.__vue__.left = this.currentElem.x;
-        this.$el.__vue__.top = this.currentElem.y;
+    /**
+     * Устанавливает вычисленное местоположение для элемента
+     * @param {MouseEvent} e
+     * @param {String} handler - handler: tl, tm, tr, mr, br, bm, bl, ml
+     */
+    setCalcStylePos(e, handler) {
+      const elem = this.$el;
+      const rect = elem.getBoundingClientRect();
+      const style = elem.style;
 
-        // this.$el.__vue__.height = this.currentElem.h;
-        // this.h = this.currentElem.h;
-        // this.$el.__vue__.width = this.currentElem.w;
-        // this.w = this.currentElem.w;
-        // console.log('after',this.$el.__vue__);
-        // this.$el.__vue__.style.height = this.currentElem.h + 'px';
-        // this.$el.__vue__.style.width = this.currentElem.w + 'px';
-
-        // this.$el.__vue__.x = 0;
-        // this.$el.__vue__.y = this.currentElem.y;
-        console.log('Отмена перетаскивания');
+      if (handler[0] === 't' && this.changeCalc(e, rect, 't') >= 0 && this.changeCalc(e, rect, 'ht') >= this.minH) {
+        style.height = this.changeCalc(e, rect, 'ht') + 'px';
+        style.top = this.changeCalc(e, rect, 't') + 'px';
+      }
+      if (handler[0] === 'b' && this.changeCalc(e, rect, 'b') >= 0 && this.changeCalc(e, rect, 'hb') >= this.minH) {
+        style.height = this.changeCalc(e, rect, 'hb') + 'px';
+      }
+      if (handler[1]=== 'm') {
+        return
+      }
+      if (handler[1] === 'l' && this.changeCalc(e, rect, 'l') >= 0 && this.changeCalc(e, rect, 'wl') >= this.minW) {
+        style.width = this.changeCalc(e, rect, 'wl') + 'px';
+        style.left = this.changeCalc(e, rect, 'l') + 'px';
+      }
+      if (handler[1] === 'r' && this.changeCalc(e, rect, 'r') >= 0 && this.changeCalc(e, rect, 'wr') >= this.minW) {
+        style.width = this.changeCalc(e, rect, 'wr') + 'px';
       }
     },
+    /**
+     * Resize start
+     * @param {MouseEvent} e
+     */
+    handleDown(e) {
+      e.preventDefault()
+      this.curHandler = e.target.classList[1];
+
+      this.posX = e.x;
+      this.posY = e.y;
+      document.addEventListener('mousemove', this.handleOn);
+      document.addEventListener('mouseup', this.handleCancel);
+      this.$el.parentNode.addEventListener('mouseleave', this.handleCancel);
+    },
+    /**
+     * Resize func
+     * @param {MouseEvent} e
+     */
+    handleOn(e) {
+      e.preventDefault()
+
+      this.setCalcStylePos(e, this.curHandler);
+
+      this.posX = e.x;
+      this.posY = e.y;
+    },
+    /**
+     * Resize cancel
+     * @param {MouseEvent} e
+     */
+    handleCancel(e) {
+      document.removeEventListener('mousemove', this.handleOn)
+      document.removeEventListener('mouseup', this.handleCancel)
+      this.$el.parentNode.removeEventListener('mouseleave', this.handleCancel);
+    }
   },
-  computed: {
-    elements() {
-      return this.$store.getters.getZones[this.zone].elements;
-    },
-    elemTitle() {
-      return this.elements[this.title];
-    },
-    currentElem() {
-      return this.elemTitle.find(item => item.id == this.id);
-    },
-    xx() {
-      return this.currentElem.x
-    },
-    yy() {
-      return this.currentElem.y
-    },
-    // mw() {
-    //   return this.currentElem.mw
-    // },
-    // ww() {
-    //   return this.currentElem.w
-    // },
-    // mh() {
-    //   return this.currentElem.mh
-    // },
-    // hh() {
-    //   return this.currentElem.h
-    // },
-  },
+  computed: {},
   watch: {},
   mounted() {
-    this.child = this.$el.lastChild;
-    // this.title = this.child.title;
-    this.id = this.child.id.replace(this.title, '');
-    // this.$el.__vue__.width - width
-    // this.$el.__vue__.height - height
-    // this.$el.__vue__.left - x
-    // this.$el.__vue__.top - y
-
-    // this.$el.__vue__.computedHeight
-    // this.$el.__vue__.computedWidth
-    // this.$el.__vue__.height
-    // this.$el.__vue__.width
-    // this.$el.__vue__.style.height
-    // this.$el.__vue__.style.width
-    // this.$el.__vue__.left
-    // this.$el.__vue__.top
-
-    // setInterval(()=>{
-    //   console.log('el', this.$el.__vue__);
-    // }, 2000)
+    this.parentSize = {w: this.$el.parentNode.offsetWidth, h: this.$el.parentNode.offsetHeight};
+    this.$el.style.top = this.pos.y + 'px';
+    this.$el.style.left = this.pos.x + 'px';
+    // Добавить расчёт краёв, чтобы предотвратить вылезание при спавне.
+    const handlers = this.$refs.handlers.childNodes;
+    for (let handler of handlers) {
+      handler.addEventListener('mousedown', this.handleDown)
+    }
   }
 }
 </script>
 
 <style lang="scss">
-.vdr {
-  border: none;
-}
-
-// Resize Handlers
-// Left
-.handle-tl, .handle-ml, .handle-bl {
-  left: 0;
-}
-
-// Right
-.handle-tr, .handle-mr, .handle-br {
-  right: 0;
-}
-
-// Top
-.handle-tm, .handle-tl, .handle-tr {
-  top: 0;
-}
-
-// Bottom
-.handle-bm, .handle-bl, .handle-br {
-  bottom: 0;
-}
-
-.resizableContainer {
+.resize {
   position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
+  //background: black;
+
+  &__handlers {
+    position: absolute;
+    display: none;
+    width: 100%;
+    height: 100%;
+
+    &.active {
+      display: block;
+    }
+  }
+
+  &__handler {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: red;
+
+    &.tl {
+      top: 0;
+      left: 0;
+      cursor: nw-resize;
+    }
+
+    &.tm {
+      top: 0;
+      right: 50%;
+      transform: translateX(50%);
+      cursor: n-resize;
+    }
+
+    &.tr {
+      top: 0;
+      right: 0;
+      cursor: ne-resize;
+    }
+
+    &.mr {
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
+      cursor: e-resize;
+    }
+
+    &.br {
+      bottom: 0;
+      right: 0;
+      cursor: se-resize;
+    }
+
+    &.bm {
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      cursor: s-resize;
+    }
+
+    &.bl {
+      bottom: 0;
+      left: 0;
+      cursor: sw-resize;
+    }
+
+    &.ml {
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+      cursor: w-resize;
+    }
+
+  }
 }
 </style>
