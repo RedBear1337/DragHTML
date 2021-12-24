@@ -1,9 +1,9 @@
 <template>
   <div :ref="'dropZone'+id" :style="`height: ${size.h};`" :id="'zone'+id" class="dropZone"
-       @drop.capture.self="drop($event)"
+       @drop.capture.self.prevent="initDrop($event)"
        @dragover.prevent
-       >
-<!--<resDiv/>-->
+  >
+    
   </div>
 </template>
 
@@ -26,6 +26,9 @@ export default {
       w: 10,
       mh: 10,
       h: 10,
+
+      // Drag
+      dragged: {}
     }
   },
   methods: {
@@ -71,11 +74,14 @@ export default {
      */
     getTransferData() {
       let data = this.currentDataTransfer;
-      if (data.title || data.html || data.style) {
-        return data;
-      } else {
-        throw new Error('Ошибка во время получения данных dataTransfer');
+      let keys = Object.keys(data);
+      for (let key of keys) {
+        if (key === undefined) {
+          throw new Error('Ошибка во время получения данных dataTransfer');
+          return
+        }
       }
+      return data;
     },
 
     // Insert methods
@@ -171,8 +177,42 @@ export default {
         return e;
       }
     },
-    initDraggable() {
+
+    // Drag Methods
+    dragCheck(e) {
+      if (!e.target.classList.contains('resize__handler')) {
+        this.dragStart(e);
+      }
+    },
+    dragStart(e) {
+      this.dragged = e.target;
+      const cloned = this.dragged.cloneNode(true);
+      e.dataTransfer.dropEffect = 'move';
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('prepare', false);
+      e.dataTransfer.setData('cloned', cloned);
+
+      this.$store.commit('setDataTransfer', {
+        prepare: false,
+        clonedNode: cloned
+      });
+      this.$store.commit('setShowState', {name: 'showElemBorders', state: true});
+    },
+    dragEnd(e) {
+      this.$store.commit('setShowState', {name: 'showElemBorders', state: false});
+    },
+    initDraggable(id) {
       // Вешать на клик draggable или на mouseDown
+      // mousedown за исключением handler ов
+      if (!id) {
+        const lastChild = this.$el.lastChild;
+        lastChild.addEventListener('dragstart', this.dragCheck, true)
+        lastChild.addEventListener('dragend', this.dragEnd)
+      } else {
+        const elem = document.getElementById(id);
+        elem.addEventListener('dragstart', this.dragCheck, true)
+        elem.addEventListener('dragend', this.dragEnd)
+      }
     },
 
     // Style load Methods
@@ -210,36 +250,66 @@ export default {
       if (titleName || id) {
         this.$el.lastChild.draggable = true;
         this.$el.lastChild.title = titleName;
-        this.$el.lastChild.id = titleName+id;
+        this.$el.lastChild.id = titleName + id;
       } else {
         throw new Error('Один из передаваемых аргументов - undefined');
       }
     },
 
-    /**
-     * Создаёт элемент в dropZone, основываясь на передаваемых данных.
-     * @param event
-     */
-    drop(event) {
-      event.preventDefault();
-      console.log('TARGET: ', event.target);
+    getZoneChildProperties(exceptId) {
+      const children = this.$el.childNodes;
+      let properties = [];
+      for (let child of children) {
+        properties.push(
+            {
+              id: child.id,
+              w: child.style.width,
+              h: child.style.height,
+              y: child.style.top,
+              x: child.style.left
+            }
+        )
+      }
+      return properties.filter(prop => prop.id !== exceptId);
+    },
+    isCollide(a, b) {
+      return !(
+          ((a.y + a.h) < (b.y)) ||
+          (a.y > (b.y + b.h)) ||
+          ((a.x + a.w) < b.x) ||
+          (a.x > (b.x + b.w))
+      );
+    },
+    checkPlaceFreedom(event, elem) {
+      const w = elem.style.width;
+      const h = elem.style.height;
+      const calcPos = this.getPastePosition(event, 5, w, h);
 
+      const checkElements = this.getZoneChildProperties(elem.id);
+
+      let result = false;
+      for (let check of checkElements) {
+        result = this.isCollide([w, h, calcPos.y, calcPos.x], check)
+        if (result) {
+          return result
+        }
+      }
+      return result
+    },
+
+    /**
+     * Преобразует передаваемые через transferData данные в форму для вставки.
+     * @param event
+     * @param transferData
+     */
+    insertTransformed(event, transferData) {
       let id;
 
-      let title;
-      let html;
-      let style;
-      try {
-        let data = this.getTransferData();
-        title = data.title;
-        html = data.html;
-        style = data.style;
-      } catch (e) {
-        console.error(e);
-        return;
-      }
+      let title = transferData.title;
+      let html = transferData.html;
+      let style = transferData.style;
 
-      this.$store.commit('clearDataTransfer');
+      // Prepare
 
       try {
         html = this.insertAttr(html, title);
@@ -277,12 +347,70 @@ export default {
       }
 
       try {
-        this.loadRulesForClass(style);  
+        this.loadRulesForClass(style);
       } catch (e) {
         console.error('Ошибка при загрузке стилей: ', e);
       }
-      
+
+      this.initDraggable();
     },
+    getElementFromTransferData(transferData) {
+      if (!transferData.clonedNode) {
+        throw new Error('clonedNode не найден')
+        return
+      }
+      return transferData.clonedNode;
+    },
+    /**
+     * Копирует и вставляет элемент
+     * @param event
+     * @param {Node} elem - скопированный элемент
+     */
+    insertCloned(event, elem) {
+      const w = elem.style.width;
+      const h = elem.style.height;
+      const calcPos = this.getPastePosition(event, 5, w, h);
+      elem.style.left = calcPos.x + 'px';
+      elem.style.top = calcPos.y + 'px';
+      try {
+        this.$el.appendChild(elem);
+      } catch (e) {
+        throw new Error('Не удалось вставить элемент');
+        return
+      }
+    },
+    removeOrigin(id) {
+      let origin = document.getElementById(id);
+      origin.remove();
+    },
+    initDrop(event) {
+      let transferData;
+      try {
+        transferData = this.getTransferData();
+        this.$store.commit('clearDataTransfer');
+      } catch (e) {
+        console.error(e);
+        return
+      }
+
+      if (transferData.prepare) {
+        this.insertTransformed(event, transferData);
+      }
+      else {
+        let elem;
+        try {
+          elem = this.getElementFromTransferData(transferData)
+        } catch (e) {
+          console.error(`Ошибка при получении данных: `, e);
+          return
+        }
+        if (!this.checkPlaceFreedom(event, elem)) {
+          this.insertCloned(event, elem);
+          this.removeOrigin(elem.id);
+          this.initDraggable(elem.id);
+        }
+      }
+    }
 
   },
   computed: {
@@ -317,7 +445,6 @@ export default {
     },
   },
   mounted() {
-
   }
 }
 </script>

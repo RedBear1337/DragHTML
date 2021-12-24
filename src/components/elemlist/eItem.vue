@@ -35,18 +35,8 @@ export default {
       let h = window.getComputedStyle(event.target, null).height;
 
       if (isNaN(w) || isNaN(h)) {
-        let numW = '';
-        let numH = '';
-        for (let char = 0; char < w.length; char++) {
-          if (!isNaN(w[char])) {
-            numW += w[char];
-          }
-        }
-        for (let char = 0; char < h.length; char++) {
-          if (!isNaN(h[char])) {
-            numH += h[char];
-          }
-        }
+        let numW = parseInt(w);
+        let numH = parseInt(h);
 
         w = w === 'auto' ? 100 : numW;
         h = h === 'auto' ? 100 : numH;
@@ -64,11 +54,14 @@ export default {
       event.dataTransfer.effectAllowed = 'copy';
       event.dataTransfer.setDragImage(event.target, imgSize.w, imgSize.h);
 
+      // prepare - нужна ли подготовка передаваемых значений при вставке
+      event.dataTransfer.setData('prepare', true);
       event.dataTransfer.setData('title', this.title.trim());
       event.dataTransfer.setData('html', this.html.trim());
       event.dataTransfer.setData('style', this.style.trim());
 
       this.$store.commit('setDataTransfer', {
+        prepare: true,
         title: this.title.trim(),
         html: this.html.trim(),
         style: this.style.trim()
