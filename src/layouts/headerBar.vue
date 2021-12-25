@@ -5,7 +5,7 @@
     HTML DRAG
   </span>
     <div class="headerBar__actions">
-      <customBtn class="headerBar__btn" :data="{message: 'Take a pic'}" />
+      <customBtn class="headerBar__btn" :type="'underline'" :data="{message: 'Take a pic'}" />
     </div>
     <button class="headerBar__control" @click="closeWin">
       <img src="../assets/svg/close.svg" alt="X" class="iconBtn">
@@ -46,10 +46,7 @@ export default {
 
 <style lang="scss">
 .headerBar {
-  // test
-  border: 1px solid red;
-  // test
-
+  border-left: 1px rgba(0, 0, 0, 0.5) solid;
   position: relative;
   -webkit-app-region: drag;
   z-index: 9999;
@@ -59,7 +56,8 @@ export default {
   justify-content: flex-end;
   align-items: center;
   padding: 0px 18px;
-  height: 58px;
+  min-height: 58px;
+  max-height: 58px;
   width: 100%;
 
   &__title {

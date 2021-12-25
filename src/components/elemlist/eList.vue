@@ -75,7 +75,6 @@ export default {
 
 .elist {
   z-index: 0;
-  //position: absolute;
   display: flex;
   flex-flow: column;
   width: 100%;
@@ -86,11 +85,14 @@ export default {
     flex-flow: column;
     align-items: center;
     justify-content: flex-start;
-    height: 58px;
+    max-height: 58px;
   }
 
   &__title {
-
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 25px;
   }
   
   &__actions {

@@ -64,7 +64,6 @@ export default {
     .vs__selected-options {
       position: relative;
       display: flex;
-      align-items: center;
       justify-content: center;
       width: 100%;
       max-width: 176px;
@@ -135,8 +134,10 @@ export default {
     cursor: pointer;
   }
   .vs__clear {
+    display: flex;
+    align-items: center;
     position: relative;
-    bottom: 1px;
+
     margin-right: 5px;
   }
 }

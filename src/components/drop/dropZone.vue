@@ -3,7 +3,7 @@
        @drop.capture.self.prevent="initDrop($event)"
        @dragover.prevent
   >
-    
+
   </div>
 </template>
 
@@ -155,6 +155,8 @@ export default {
       let replaceMe = document.createElement('div')
       replaceMe.className = 'replaceMe';
       this.$el.appendChild(replaceMe);
+      let pos = this.getPastePosition(event, 5, w, h);
+      pos = this.checkBounds(pos.x, pos.y, w, h);
       try {
         const resizeInstance = Vue.extend(resizableContainer);
         completeElem = new resizeInstance(
@@ -162,7 +164,7 @@ export default {
               propsData: {
                 // zone: 'zone'+this.id,
                 // title: title,
-                pos: this.getPastePosition(event, 5, w, h),
+                pos: pos,
                 size: {w: w, h: h}
               },
               store
@@ -186,16 +188,22 @@ export default {
     },
     dragStart(e) {
       this.dragged = e.target;
-      const cloned = this.dragged.cloneNode(true);
+      let w = parseInt(this.dragged.style.width) / 2;
+      let h = parseInt(this.dragged.style.height) / 2;
+
+      // const cloned = this.dragged.cloneNode(true);
       e.dataTransfer.dropEffect = 'move';
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('prepare', false);
-      e.dataTransfer.setData('cloned', cloned);
 
-      this.$store.commit('setDataTransfer', {
-        prepare: false,
-        clonedNode: cloned
-      });
+      e.dataTransfer.setDragImage(e.target, w, h);
+      // e.dataTransfer.setData('cloned', cloned);
+      //
+      // this.$store.commit('setDataTransfer', {
+      //   prepare: false,
+      //   clonedNode: cloned
+      // });
+
       this.$store.commit('setShowState', {name: 'showElemBorders', state: true});
     },
     dragEnd(e) {
@@ -245,7 +253,11 @@ export default {
         throw new Error(`style: ${styleName} не найден`)
       }
     },
-
+    /**
+     * Устанавливает значения атрибутов для созданного элемента
+     * @param titleName
+     * @param id
+     */
     setAttr(titleName, id) {
       if (titleName || id) {
         this.$el.lastChild.draggable = true;
@@ -255,7 +267,11 @@ export default {
         throw new Error('Один из передаваемых аргументов - undefined');
       }
     },
-
+    /**
+     * Возвращает размеры и координаты всех дочерних элементов dropZone в виде массива
+     * @param exceptId
+     * @returns {*[]}
+     */
     getZoneChildProperties(exceptId) {
       const children = this.$el.childNodes;
       let properties = [];
@@ -272,6 +288,12 @@ export default {
       }
       return properties.filter(prop => prop.id !== exceptId);
     },
+    /**
+     * Проверяет, не соприкасается ли элемент с другим
+     * @param a
+     * @param b
+     * @returns {boolean}
+     */
     isCollide(a, b) {
       return !(
           ((a.y + a.h) < (b.y)) ||
@@ -280,6 +302,44 @@ export default {
           (a.x > (b.x + b.w))
       );
     },
+    /**
+     * Возвращает координаты, не нарушающие границы рабочей зоны
+     * @param {String | Number} x
+     * @param {String | Number} y
+     * @param {String | Number} w
+     * @param {String | Number} h
+     * @returns {{x, y}}
+     */
+    checkBounds(x, y, w, h) {
+      let result = {x: x, y: y};
+      w = parseInt(w);
+      h = parseInt(h);
+      const bottom = y + h;
+      const top = y;
+      const left = x;
+      const right = x + w;
+      const zoneHeight = parseInt(this.$el.style.height);
+      const zoneWidth = parseInt(getComputedStyle(this.$el, false).width);
+      if (bottom > zoneHeight) {
+        result.y = zoneHeight-h;
+      }
+      if (top < 0) {
+        result.y = 0;
+      }
+      if (left < 0) {
+        result.x = 0;
+      }
+      if (right > zoneWidth) {
+         result.x = zoneWidth-w;
+      }
+      return result;
+    },
+    /**
+     * Проверяет, свободно ли пространство для установки объекта
+     * @param event
+     * @param elem
+     * @returns {boolean}
+     */
     checkPlaceFreedom(event, elem) {
       const w = elem.style.width;
       const h = elem.style.height;
@@ -311,12 +371,14 @@ export default {
 
       // Prepare
 
-      try {
-        html = this.insertAttr(html, title);
-      } catch (e) {
-        console.error('insertAttr', e);
-        return;
-      }
+      // try {
+      //   html = this.insertAttr(html, title);
+      // } catch (e) {
+      //   console.error('insertAttr', e);
+      //   return;
+      // }
+
+      // Get id
       try {
         if (!this.zoneElements[title]) {
           this.$store.commit('initTitle', {zone: 'zone' + this.id, title: title});
@@ -327,12 +389,13 @@ export default {
           id = 0;
         }
 
-        html = this.insertId(html, title, id);
+        // html = this.insertId(html, title, id);
       } catch (e) {
         console.error('insertId', e);
         return;
       }
 
+      // Init
       try {
         this.initElement(html, event, title)
       } catch (e) {
@@ -340,12 +403,14 @@ export default {
         return;
       }
 
+      // Setting Attributes
       try {
         this.setAttr(title, id);
       } catch (e) {
         console.error('Ошибка при установке аттрибутов: ', e);
       }
 
+      // load Classes
       try {
         this.loadRulesForClass(style);
       } catch (e) {
@@ -354,35 +419,52 @@ export default {
 
       this.initDraggable();
     },
-    getElementFromTransferData(transferData) {
-      if (!transferData.clonedNode) {
-        throw new Error('clonedNode не найден')
-        return
-      }
-      return transferData.clonedNode;
-    },
     /**
      * Копирует и вставляет элемент
      * @param event
      * @param {Node} elem - скопированный элемент
      */
-    insertCloned(event, elem) {
+    insertCopied(event, elem) {
       const w = elem.style.width;
       const h = elem.style.height;
       const calcPos = this.getPastePosition(event, 5, w, h);
-      elem.style.left = calcPos.x + 'px';
-      elem.style.top = calcPos.y + 'px';
+      let div = document.createElement('div');
+
+      // Что применится - стили mounted компонента (которые style) или div?
+      // div.style.position: relative;
+      div.style.left = calcPos.x + 'px';
+      div.style.top = calcPos.y + 'px';
+      // elem.style.top = calcPos.y + 'px';
       try {
-        this.$el.appendChild(elem);
+        this.$el.appendChild(div);
       } catch (e) {
         throw new Error('Не удалось вставить элемент');
         return
       }
+      this.dragged.__vue__.$mount(this.$el.lastChild);
     },
     removeOrigin(id) {
       let origin = document.getElementById(id);
       origin.remove();
     },
+    /**
+     * Устанавливает новые координаты для элемента на основе местоположения курсора
+     * @param event
+     * @param {Node} elem
+     */
+    changePlace(event, elem) {
+      const w = elem.style.width;
+      const h = elem.style.height;
+      const calcPos = this.getPastePosition(event, 5, w, h);
+      const bounds = this.checkBounds(calcPos.x, calcPos.y, w, h);
+
+      elem.style.left = bounds.x + 'px';
+      elem.style.top = bounds.y + 'px';
+    },
+    /**
+     * Инициализировать drop элемента
+     * @param event
+     */
     initDrop(event) {
       let transferData;
       try {
@@ -395,19 +477,13 @@ export default {
 
       if (transferData.prepare) {
         this.insertTransformed(event, transferData);
-      }
-      else {
-        let elem;
-        try {
-          elem = this.getElementFromTransferData(transferData)
-        } catch (e) {
-          console.error(`Ошибка при получении данных: `, e);
-          return
-        }
+      } else {
+        let elem = this.dragged;
         if (!this.checkPlaceFreedom(event, elem)) {
-          this.insertCloned(event, elem);
-          this.removeOrigin(elem.id);
-          this.initDraggable(elem.id);
+          // this.insertCopied(event, elem);
+          // this.removeOrigin(elem.id);
+          // this.initDraggable(elem.id);
+          this.changePlace(event, elem);
         }
       }
     }
