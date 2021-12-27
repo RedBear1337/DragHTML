@@ -95,13 +95,19 @@ export default {
      * @returns {Number}
      */
     getElementId() {
-      let children = this.getZoneElements();
       let sameTitle = [];
-      for (let child of children) {
-        if (child.title === this.title) {
-          sameTitle.push(parseInt(child.id.replace(this.title, '')));
+      try {
+        let children = this.getZoneElements();
+        for (let child of children) {
+          if (child.title === this.title) {
+            sameTitle.push(parseInt(child.id.replace(this.title, '')));
+          }
         }
+      } catch (e) {
+        throw new Error('Ошибка при получении id элемента: ')+e;
+        return
       }
+
       return Math.max(...sameTitle) < 1 ? 1 : Math.max(...sameTitle) + 1;
     },
     /**
@@ -190,20 +196,15 @@ export default {
     initElement(event) {
       let w = 100;
       let h = 100;
-
       let completeElem;
       let replaceMe = document.createElement('div')
       replaceMe.className = 'replaceMe';
       this.$el.appendChild(replaceMe);
-      // let pos = this.getPastePosition(event, 5, w, h);
-      // pos = this.checkBounds(pos.x, pos.y, w, h);
       try {
         const resizeInstance = Vue.extend(resizableContainer);
         completeElem = new resizeInstance(
             {
               propsData: {
-                // zone: 'zone'+this.elemId,
-                // title: this.title,
                 pos: this.pastePos,
                 size: {w: w, h: h}
               },
@@ -216,7 +217,8 @@ export default {
         completeElem.$slots.innerNode = [completeElem.$createElement(compiledHTML)];
         completeElem.$mount('.replaceMe');
       } catch (e) {
-        return e;
+        throw e;
+        return;
       }
     },
 
@@ -231,18 +233,11 @@ export default {
       let w = parseInt(this.dragged.style.width) / 2;
       let h = parseInt(this.dragged.style.height) / 2;
 
-      // const cloned = this.dragged.cloneNode(true);
       e.dataTransfer.dropEffect = 'move';
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('prepare', false);
 
       e.dataTransfer.setDragImage(e.target, w, h);
-      // e.dataTransfer.setData('cloned', cloned);
-      //
-      // this.$store.commit('setDataTransfer', {
-      //   prepare: false,
-      //   clonedNode: cloned
-      // });
 
       this.$store.commit('setShowState', {name: 'showElemBorders', state: true});
     },
@@ -250,8 +245,6 @@ export default {
       this.$store.commit('setShowState', {name: 'showElemBorders', state: false});
     },
     initDraggable(id) {
-      // Вешать на клик draggable или на mouseDown
-      // mousedown за исключением handler ов
       if (!id) {
         const lastChild = this.$el.lastChild;
         lastChild.addEventListener('dragstart', this.dragCheck, true)
@@ -270,27 +263,35 @@ export default {
      * @param {String} rules - список правил строкой. Например: 'color: green;'
      */
     createClass(className, rules) {
-      const style = document.createElement('style');
-      style.type = 'text/css';
-      style.innerHTML = `${className} {\n` +
-          `${rules} }`;
-      document.getElementsByTagName('head')[0].appendChild(style);
+      try {
+        const style = document.createElement('style');
+        style.type = 'text/css';
+        style.innerHTML = `${className} {\n` +
+            `${rules} }`;
+        document.getElementsByTagName('head')[0].appendChild(style);
+      } catch (e) {
+        throw new Error('Ошибка при создании класса: ') + e;
+        return
+      }
     },
     /**
      * Загрузить в head стили для элемента
      */
     loadRulesForClass() {
-      if (!this.appliedStyles.some(style => style === this.style)) {
-        this.$store.commit('addApplied', this.style);
+        if (!this.appliedStyles.some(style => style === this.style)) {
+          this.$store.commit('addApplied', this.style);
 
-        let classes = this.styles[this.style].styleCode;
+          let classes = this.styles[this.style].styleCode;
 
-        for (let item of classes) {
-          this.createClass(item.class, item.rules);
+          try {
+            for (let item of classes) {
+              this.createClass(item.class, item.rules);
+            }
+          } catch (e) {
+            console.error(e);
+            return
+          }
         }
-      } else {
-        throw new Error(`style: ${this.style} не найден`)
-      }
     },
     /**
      * Устанавливает значения атрибутов для созданного элемента
@@ -301,7 +302,7 @@ export default {
         this.$el.lastChild.title = this.title;
         this.$el.lastChild.id = this.title + this.elemId;
       } else {
-        throw new Error('Один из передаваемых аргументов - undefined');
+        throw new Error('Один из передаваемых аргументов - undefined. ');
       }
     },
 
@@ -373,7 +374,7 @@ export default {
           h = options.height;
         }
       } catch (e) {
-        throw new Error('Ошибка при получении ширины и высоты');
+        throw new Error('Ошибка при получении ширины и высоты: ')+e;
         return
       }
 
@@ -382,7 +383,7 @@ export default {
         let paste = this.getPastePosition(event, 5, w, h);
         bounds = this.checkBounds(paste.x, paste.y, w, h);
       } catch (e) {
-        throw new Error('Ошибка при получении координат для вставки элемента');
+        throw new Error('Ошибка при получении координат для вставки элемента: ')+e;
         return
       }
 
@@ -391,7 +392,7 @@ export default {
         let elemId = elem.id || options.id;
         checkElements = this.getZoneElements().filter(child => child.id !== elemId);
       } catch (e) {
-        throw new Error('Ошибка при получении списка элементов зоны');
+        throw new Error('Ошибка при получении списка элементов зоны: ')+e;
         return
       }
 
@@ -411,7 +412,7 @@ export default {
           }
         }
       } catch (e) {
-        throw new Error('Ошибка при расчете коллизии')
+        throw new Error('Ошибка при расчете коллизии: ')+e
       }
 
       if (!result) {
@@ -433,7 +434,12 @@ export default {
       //========= Prepare
 
       // Get id
-      this.elemId = this.getElementId();
+      try {
+        this.elemId = this.getElementId();
+      } catch (e) {
+        console.error(e);
+        return;
+      }
 
       // Init
       try {
