@@ -27,8 +27,15 @@ export default {
       mh: 10,
       h: 10,
 
+      pastePos: {x: 0, y: 0},
       // Drag
-      dragged: {}
+      dragged: {},
+
+      // Create Elem
+      elemId: '',
+      title: '',
+      html: '',
+      style: ''
     }
   },
   methods: {
@@ -82,6 +89,41 @@ export default {
         }
       }
       return data;
+    },
+    /**
+     * Возвращает максимальный, соответствующий title, elemId+1
+     * @returns {Number}
+     */
+    getElementId() {
+      let children = this.getZoneElements();
+      let sameTitle = [];
+      for (let child of children) {
+        if (child.title === this.title) {
+          sameTitle.push(parseInt(child.id.replace(this.title, '')));
+        }
+      }
+      return Math.max(...sameTitle) < 1 ? 1 : Math.max(...sameTitle) + 1;
+    },
+    /**
+     * Возвращает размеры и координаты всех дочерних элементов dropZone в виде массива
+     * @returns {*[]}
+     */
+    getZoneElements() {
+      const children = this.$el.childNodes;
+      let properties = [];
+      for (let child of children) {
+        properties.push(
+            {
+              title: child.title,
+              id: child.id,
+              w: child.style.width,
+              h: child.style.height,
+              y: child.style.top,
+              x: child.style.left
+            }
+        )
+      }
+      return properties;
     },
 
     // Insert methods
@@ -143,11 +185,9 @@ export default {
     // Init Methods
     /**
      * Инициализация и рендер элемента в dropZone
-     * @param {String} htmlCode - <div class="">...</div>
      * @param event
-     * @param title
      */
-    initElement(htmlCode, event, title) {
+    initElement(event) {
       let w = 100;
       let h = 100;
 
@@ -155,23 +195,23 @@ export default {
       let replaceMe = document.createElement('div')
       replaceMe.className = 'replaceMe';
       this.$el.appendChild(replaceMe);
-      let pos = this.getPastePosition(event, 5, w, h);
-      pos = this.checkBounds(pos.x, pos.y, w, h);
+      // let pos = this.getPastePosition(event, 5, w, h);
+      // pos = this.checkBounds(pos.x, pos.y, w, h);
       try {
         const resizeInstance = Vue.extend(resizableContainer);
         completeElem = new resizeInstance(
             {
               propsData: {
-                // zone: 'zone'+this.id,
-                // title: title,
-                pos: pos,
+                // zone: 'zone'+this.elemId,
+                // title: this.title,
+                pos: this.pastePos,
                 size: {w: w, h: h}
               },
               store
             }
         );
 
-        let compiledHTML = Vue.compile(htmlCode);
+        let compiledHTML = Vue.compile(this.html);
 
         completeElem.$slots.innerNode = [completeElem.$createElement(compiledHTML)];
         completeElem.$mount('.replaceMe');
@@ -238,56 +278,33 @@ export default {
     },
     /**
      * Загрузить в head стили для элемента
-     * @param {String} styleName - название стиля
      */
-    loadRulesForClass(styleName) {
-      if (!this.appliedStyles.some(style => style === styleName)) {
-        this.$store.commit('addApplied', styleName);
+    loadRulesForClass() {
+      if (!this.appliedStyles.some(style => style === this.style)) {
+        this.$store.commit('addApplied', this.style);
 
-        let classes = this.styles[styleName].styleCode;
+        let classes = this.styles[this.style].styleCode;
 
         for (let item of classes) {
           this.createClass(item.class, item.rules);
         }
       } else {
-        throw new Error(`style: ${styleName} не найден`)
+        throw new Error(`style: ${this.style} не найден`)
       }
     },
     /**
      * Устанавливает значения атрибутов для созданного элемента
-     * @param titleName
-     * @param id
      */
-    setAttr(titleName, id) {
-      if (titleName || id) {
+    setAttr() {
+      if (this.title || this.elemId) {
         this.$el.lastChild.draggable = true;
-        this.$el.lastChild.title = titleName;
-        this.$el.lastChild.id = titleName + id;
+        this.$el.lastChild.title = this.title;
+        this.$el.lastChild.id = this.title + this.elemId;
       } else {
         throw new Error('Один из передаваемых аргументов - undefined');
       }
     },
-    /**
-     * Возвращает размеры и координаты всех дочерних элементов dropZone в виде массива
-     * @param exceptId
-     * @returns {*[]}
-     */
-    getZoneChildProperties(exceptId) {
-      const children = this.$el.childNodes;
-      let properties = [];
-      for (let child of children) {
-        properties.push(
-            {
-              id: child.id,
-              w: child.style.width,
-              h: child.style.height,
-              y: child.style.top,
-              x: child.style.left
-            }
-        )
-      }
-      return properties.filter(prop => prop.id !== exceptId);
-    },
+
     /**
      * Проверяет, не соприкасается ли элемент с другим
      * @param a
@@ -321,7 +338,7 @@ export default {
       const zoneHeight = parseInt(this.$el.style.height);
       const zoneWidth = parseInt(getComputedStyle(this.$el, false).width);
       if (bottom > zoneHeight) {
-        result.y = zoneHeight-h;
+        result.y = zoneHeight - h;
       }
       if (top < 0) {
         result.y = 0;
@@ -330,29 +347,75 @@ export default {
         result.x = 0;
       }
       if (right > zoneWidth) {
-         result.x = zoneWidth-w;
+        result.x = zoneWidth - w;
       }
       return result;
     },
     /**
-     * Проверяет, свободно ли пространство для установки объекта
+     * Проверяет, свободно ли пространство для установки объекта и записывает координаты в this.pastePos
      * @param event
-     * @param elem
+     * @param {Node | Boolean} elem
+     * @param {{width: number, id: string, height: number}} options - опциональный параметр.
+     * @param {Number} options.width - ширина
+     * @param {Number} options.height - высота
+     * @param {String} options.id - id элемента
      * @returns {boolean}
      */
-    checkPlaceFreedom(event, elem) {
-      const w = elem.style.width;
-      const h = elem.style.height;
-      const calcPos = this.getPastePosition(event, 5, w, h);
+    checkPlaceFreedom(event, elem, options) {
+      let w;
+      let h;
+      try {
+        if (elem && !options) {
+          w = parseInt(elem.style.width)
+          h = parseInt(elem.style.height)
+        } else {
+          w = options.width;
+          h = options.height;
+        }
+      } catch (e) {
+        throw new Error('Ошибка при получении ширины и высоты');
+        return
+      }
 
-      const checkElements = this.getZoneChildProperties(elem.id);
+      let bounds;
+      try {
+        let paste = this.getPastePosition(event, 5, w, h);
+        bounds = this.checkBounds(paste.x, paste.y, w, h);
+      } catch (e) {
+        throw new Error('Ошибка при получении координат для вставки элемента');
+        return
+      }
+
+      let checkElements;
+      try {
+        let elemId = elem.id || options.id;
+        checkElements = this.getZoneElements().filter(child => child.id !== elemId);
+      } catch (e) {
+        throw new Error('Ошибка при получении списка элементов зоны');
+        return
+      }
+
 
       let result = false;
-      for (let check of checkElements) {
-        result = this.isCollide([w, h, calcPos.y, calcPos.x], check)
-        if (result) {
-          return result
+      try {
+        for (let check of checkElements) {
+          let checkObj = {
+            w: parseInt(check.w),
+            h: parseInt(check.h),
+            y: parseInt(check.y),
+            x: parseInt(check.x)
+          };
+          result = this.isCollide({w: w, h: h, y: bounds.y, x: bounds.x}, checkObj)
+          if (result) {
+            return result
+          }
         }
+      } catch (e) {
+        throw new Error('Ошибка при расчете коллизии')
+      }
+
+      if (!result) {
+        this.pastePos = bounds;
       }
       return result
     },
@@ -363,41 +426,20 @@ export default {
      * @param transferData
      */
     insertTransformed(event, transferData) {
-      let id;
+      this.title = transferData.title;
+      this.html = transferData.html;
+      this.style = transferData.style;
 
-      let title = transferData.title;
-      let html = transferData.html;
-      let style = transferData.style;
-
-      // Prepare
-
-      // try {
-      //   html = this.insertAttr(html, title);
-      // } catch (e) {
-      //   console.error('insertAttr', e);
-      //   return;
-      // }
+      //========= Prepare
 
       // Get id
-      try {
-        if (!this.zoneElements[title]) {
-          this.$store.commit('initTitle', {zone: 'zone' + this.id, title: title});
-        }
-        if (this.zoneElements[title].length > 0) {
-          id = this.zoneElements[title][this.zoneElements[title].length - 1].id + 1;
-        } else {
-          id = 0;
-        }
-
-        // html = this.insertId(html, title, id);
-      } catch (e) {
-        console.error('insertId', e);
-        return;
-      }
+      this.elemId = this.getElementId();
 
       // Init
       try {
-        this.initElement(html, event, title)
+        if (!this.checkPlaceFreedom(event, false, {width: 100, height: 100, id: this.title + this.elemId})) {
+          this.initElement(event)
+        }
       } catch (e) {
         console.error('Ошибка во время инициализации элемента: ', e);
         return;
@@ -405,14 +447,14 @@ export default {
 
       // Setting Attributes
       try {
-        this.setAttr(title, id);
+        this.setAttr();
       } catch (e) {
         console.error('Ошибка при установке аттрибутов: ', e);
       }
 
       // load Classes
       try {
-        this.loadRulesForClass(style);
+        this.loadRulesForClass();
       } catch (e) {
         console.error('Ошибка при загрузке стилей: ', e);
       }
@@ -453,13 +495,8 @@ export default {
      * @param {Node} elem
      */
     changePlace(event, elem) {
-      const w = elem.style.width;
-      const h = elem.style.height;
-      const calcPos = this.getPastePosition(event, 5, w, h);
-      const bounds = this.checkBounds(calcPos.x, calcPos.y, w, h);
-
-      elem.style.left = bounds.x + 'px';
-      elem.style.top = bounds.y + 'px';
+      elem.style.left = this.pastePos.x + 'px';
+      elem.style.top = this.pastePos.y + 'px';
     },
     /**
      * Инициализировать drop элемента
@@ -486,7 +523,8 @@ export default {
           this.changePlace(event, elem);
         }
       }
-    }
+    },
+
 
   },
   computed: {
@@ -502,9 +540,6 @@ export default {
     isBorderShow() {
       return this.$store.getters.getIsElemBordersShow;
     },
-    zoneElements() {
-      return this.$store.getters.getZones['zone' + this.id].elements;
-    }
   },
   watch: {
     isBorderShow(state) {

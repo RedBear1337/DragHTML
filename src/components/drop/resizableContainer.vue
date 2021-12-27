@@ -159,7 +159,6 @@ export default {
     this.parentSize = {w: this.$el.parentNode.offsetWidth, h: this.$el.parentNode.offsetHeight};
     this.$el.style.top = this.pos.y + 'px';
     this.$el.style.left = this.pos.x + 'px';
-    // Добавить расчёт краёв, чтобы предотвратить вылезание при спавне.
     const handlers = this.$refs.handlers.childNodes;
     for (let handler of handlers) {
       handler.addEventListener('mousedown', this.handleDown)
