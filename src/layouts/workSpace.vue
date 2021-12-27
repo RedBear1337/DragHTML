@@ -2,8 +2,12 @@
   <div class="workSpace">
     <!-- Header Bar -->
     <headerBar/>
-    <div class="workSpace__content">
-      <dropZone :size="{h:'200px'}" :id="1"/>
+    <div ref="content" class="workSpace__content">
+      <dropZone v-for="(zone, idx) of zones" 
+                :key="zone.name" 
+                :size="{h:zone.height}" 
+                :id="idx+1"
+      @updateEvent="updateJournal"/>
     </div>
   </div>
 </template>
@@ -18,7 +22,12 @@ export default {
   data() {
     return {}
   },
-  methods: {},
+  methods: {
+    updateJournal(zoneId) {
+      console.log('zoneId',zoneId);
+      this.$store.commit('addChange', this.$refs.content);
+    }
+  },
   computed: {
     zones() {
       return this.$store.getters.getZones;
@@ -37,7 +46,7 @@ export default {
   display: flex;
   flex-flow: column;
   align-items: center;
-  height: calc(100vh - 58px);
+  //height: calc(100vh - 58px);
   width: 100%;
   overflow-x: hidden;
 

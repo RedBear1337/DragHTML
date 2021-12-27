@@ -1,9 +1,8 @@
 <template>
-  <div :ref="'dropZone'+id" :style="`height: ${size.h};`" :id="'zone'+id" class="dropZone"
+  <div :style="`height: ${size.h}px;`" :id="'zone'+id" class="dropZone"
        @drop.capture.self.prevent="initDrop($event)"
        @dragover.prevent
   >
-
   </div>
 </template>
 
@@ -28,6 +27,7 @@ export default {
       h: 10,
 
       pastePos: {x: 0, y: 0},
+
       // Drag
       dragged: {},
 
@@ -39,6 +39,11 @@ export default {
     }
   },
   methods: {
+    // Update
+    updateJournal() {
+      this.$emit('updateEvent', this.$el.id);
+    },
+
     // Get methods
     /**
      * Возвращает преобразованные координаты. Убирает дробь, округляет до нужной кратности, преобразует строку в число
@@ -186,6 +191,75 @@ export default {
       } else {
         return htmlCode = htmlCode.slice(0, openTagCharAt) + titleName + ' ' + htmlCode.slice(openTagCharAt);
       }
+    },/**
+     * Преобразует передаваемые через transferData данные в форму для вставки.
+     * @param event
+     * @param transferData
+     */
+    insertTransformed(event, transferData) {
+      this.title = transferData.title;
+      this.html = transferData.html;
+      this.style = transferData.style;
+
+      //========= Prepare
+
+      // Get id
+      try {
+        this.elemId = this.getElementId();
+      } catch (e) {
+        console.error(e);
+        return;
+      }
+
+      // Init
+      try {
+        if (!this.checkPlaceFreedom(event, false, {width: 100, height: 100, id: this.title + this.elemId})) {
+          this.initElement(event)
+        }
+      } catch (e) {
+        console.error('Ошибка во время инициализации элемента: ', e);
+        return;
+      }
+
+      // Setting Attributes
+      try {
+        this.setAttr();
+      } catch (e) {
+        console.error('Ошибка при установке аттрибутов: ', e);
+      }
+
+      // load Classes
+      try {
+        this.loadRulesForClass();
+      } catch (e) {
+        console.error('Ошибка при загрузке стилей: ', e);
+      }
+
+      this.initDraggable();
+    },
+    /**
+     * Копирует и вставляет элемент
+     * @param event
+     * @param {Node} elem - скопированный элемент
+     */
+    insertCopied(event, elem) {
+      const w = elem.style.width;
+      const h = elem.style.height;
+      const calcPos = this.getPastePosition(event, 5, w, h);
+      let div = document.createElement('div');
+
+      // Что применится - стили mounted компонента (которые style) или div?
+      // div.style.position: relative;
+      div.style.left = calcPos.x + 'px';
+      div.style.top = calcPos.y + 'px';
+      // elem.style.top = calcPos.y + 'px';
+      try {
+        this.$el.appendChild(div);
+      } catch (e) {
+        throw new Error('Не удалось вставить элемент');
+        return
+      }
+      this.dragged.__vue__.$mount(this.$el.lastChild);
     },
 
     // Init Methods
@@ -221,6 +295,49 @@ export default {
         return;
       }
     },
+    /**
+     * Вешает drag ивенты на созданный элемент
+     * @param id
+     */
+    initDraggable(id) {
+      if (!id) {
+        const lastChild = this.$el.lastChild;
+        lastChild.addEventListener('dragstart', this.dragCheck, true)
+        lastChild.addEventListener('dragend', this.dragEnd)
+      } else {
+        const elem = document.getElementById(id);
+        elem.addEventListener('dragstart', this.dragCheck, true)
+        elem.addEventListener('dragend', this.dragEnd)
+      }
+    },
+    /**
+     * Инициализировать drop элемента
+     * @param event
+     */
+    initDrop(event) {
+      let transferData;
+      try {
+        transferData = this.getTransferData();
+        this.$store.commit('clearDataTransfer');
+      } catch (e) {
+        console.error(e);
+        return
+      }
+
+      if (transferData.prepare) {
+        this.insertTransformed(event, transferData);
+        this.updateJournal();
+      } else {
+        let elem = this.dragged;
+        if (!this.checkPlaceFreedom(event, elem, false)) {
+          // this.insertCopied(event, elem);
+          // this.removeOrigin(elem.id);
+          // this.initDraggable(elem.id);
+          this.changePlace(event, elem);
+          this.updateJournal();
+        }
+      }
+    },
 
     // Drag Methods
     dragCheck(e) {
@@ -243,17 +360,6 @@ export default {
     },
     dragEnd(e) {
       this.$store.commit('setShowState', {name: 'showElemBorders', state: false});
-    },
-    initDraggable(id) {
-      if (!id) {
-        const lastChild = this.$el.lastChild;
-        lastChild.addEventListener('dragstart', this.dragCheck, true)
-        lastChild.addEventListener('dragend', this.dragEnd)
-      } else {
-        const elem = document.getElementById(id);
-        elem.addEventListener('dragstart', this.dragCheck, true)
-        elem.addEventListener('dragend', this.dragEnd)
-      }
     },
 
     // Style load Methods
@@ -306,6 +412,7 @@ export default {
       }
     },
 
+    // Position check
     /**
      * Проверяет, не соприкасается ли элемент с другим
      * @param a
@@ -396,7 +503,6 @@ export default {
         return
       }
 
-
       let result = false;
       try {
         for (let check of checkElements) {
@@ -421,76 +527,7 @@ export default {
       return result
     },
 
-    /**
-     * Преобразует передаваемые через transferData данные в форму для вставки.
-     * @param event
-     * @param transferData
-     */
-    insertTransformed(event, transferData) {
-      this.title = transferData.title;
-      this.html = transferData.html;
-      this.style = transferData.style;
-
-      //========= Prepare
-
-      // Get id
-      try {
-        this.elemId = this.getElementId();
-      } catch (e) {
-        console.error(e);
-        return;
-      }
-
-      // Init
-      try {
-        if (!this.checkPlaceFreedom(event, false, {width: 100, height: 100, id: this.title + this.elemId})) {
-          this.initElement(event)
-        }
-      } catch (e) {
-        console.error('Ошибка во время инициализации элемента: ', e);
-        return;
-      }
-
-      // Setting Attributes
-      try {
-        this.setAttr();
-      } catch (e) {
-        console.error('Ошибка при установке аттрибутов: ', e);
-      }
-
-      // load Classes
-      try {
-        this.loadRulesForClass();
-      } catch (e) {
-        console.error('Ошибка при загрузке стилей: ', e);
-      }
-
-      this.initDraggable();
-    },
-    /**
-     * Копирует и вставляет элемент
-     * @param event
-     * @param {Node} elem - скопированный элемент
-     */
-    insertCopied(event, elem) {
-      const w = elem.style.width;
-      const h = elem.style.height;
-      const calcPos = this.getPastePosition(event, 5, w, h);
-      let div = document.createElement('div');
-
-      // Что применится - стили mounted компонента (которые style) или div?
-      // div.style.position: relative;
-      div.style.left = calcPos.x + 'px';
-      div.style.top = calcPos.y + 'px';
-      // elem.style.top = calcPos.y + 'px';
-      try {
-        this.$el.appendChild(div);
-      } catch (e) {
-        throw new Error('Не удалось вставить элемент');
-        return
-      }
-      this.dragged.__vue__.$mount(this.$el.lastChild);
-    },
+    // Position change
     removeOrigin(id) {
       let origin = document.getElementById(id);
       origin.remove();
@@ -504,34 +541,6 @@ export default {
       elem.style.left = this.pastePos.x + 'px';
       elem.style.top = this.pastePos.y + 'px';
     },
-    /**
-     * Инициализировать drop элемента
-     * @param event
-     */
-    initDrop(event) {
-      let transferData;
-      try {
-        transferData = this.getTransferData();
-        this.$store.commit('clearDataTransfer');
-      } catch (e) {
-        console.error(e);
-        return
-      }
-
-      if (transferData.prepare) {
-        this.insertTransformed(event, transferData);
-      } else {
-        let elem = this.dragged;
-        if (!this.checkPlaceFreedom(event, elem)) {
-          // this.insertCopied(event, elem);
-          // this.removeOrigin(elem.id);
-          // this.initDraggable(elem.id);
-          this.changePlace(event, elem);
-        }
-      }
-    },
-
-
   },
   computed: {
     styles() {

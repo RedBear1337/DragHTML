@@ -6,6 +6,7 @@ import showStates from "@/store/showStates";
 import dragData from "@/store/dragData";
 import dropBtn from "@/store/dropBtn";
 import dropZone from "@/store/dropZone"
+import historyChangeJournal from "@/store/historyChangeJournal"
 
 Vue.use(Vuex)
 
@@ -15,6 +16,7 @@ export default new Vuex.Store({
     showStates,
     dragData,
     dropBtn,
-    dropZone
+    dropZone,
+    historyChangeJournal
   }
 })

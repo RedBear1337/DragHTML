@@ -29,7 +29,7 @@ export default {
             return 'border: 1px solid';
         }
       } else {
-        return 'border: 1px solid; max-width: 28px; height: 28px;'
+        return 'border: 1px solid; width: 28px; max-width: 28px; height: 28px;'
       }
 
     }

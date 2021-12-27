@@ -1,11 +1,20 @@
 <template>
   <section class="headerBar">
+    <!-- Sub Actions -->
+    <div class="headerBar__actions">
+      <div class="headerBar__group">
+        <customBtn class="headerBar__btn" :short="true" :data="{img: 'settings', alt: 'Conf', func: ''}"/>
+        <customBtn class="headerBar__btn" :short="true" :data="{img: 'dropZone', alt: 'addZone', func: this.addZone}"/>
+      </div>
+      <journalNav class="headerBar__group" />
+    </div>
     <!-- Title -->
     <span class="headerBar__title">
     HTML DRAG
-  </span>
+    </span>
+    <!-- Main Actions -->
     <div class="headerBar__actions">
-      <customBtn class="headerBar__btn" :type="'underline'" :data="{message: 'Take a pic'}" />
+      <customBtn class="headerBar__btn" :type="'underline'" :data="{message: 'Take a pic'}"/>
     </div>
     <button class="headerBar__control" @click="closeWin">
       <img src="../assets/svg/close.svg" alt="X" class="iconBtn">
@@ -17,13 +26,13 @@
 import electron from "electron";
 
 import customBtn from "@/components/customBtn";
+import journalNav from "@/components/header/journalNav";
 
 export default {
   name: "headerBar",
-  components: {customBtn},
+  components: {customBtn, journalNav},
   data: function () {
-    return {
-    }
+    return {}
   },
   methods: {
     hideWin() {
@@ -32,12 +41,14 @@ export default {
     closeWin() {
       electron.ipcRenderer.send('service', {action: 'close-win'});
     },
-  },
-  computed: {
 
+    addZone() {
+      let zones = this.$store.getters.getZones;
+      this.$store.commit('addZone', {id: 'zone'+zones.length+1, y: 0, height: 200});
+    }
   },
-  watch: {
-  },
+  computed: {},
+  watch: {},
   mounted() {
 
   },
@@ -53,9 +64,9 @@ export default {
   display: flex;
   flex-flow: row;
 
-  justify-content: flex-end;
-  align-items: center;
-  padding: 0px 18px;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0px 18px 5px 9px;
   min-height: 58px;
   max-height: 58px;
   width: 100%;
@@ -63,7 +74,8 @@ export default {
   &__title {
     position: absolute;
     left: 50%;
-    transform: translate(-50%);
+    top: 50%;
+    transform: translate(-50%, -50%);
     font-style: normal;
     font-weight: 500;
     font-size: 2vw;
@@ -87,18 +99,26 @@ export default {
       }
     }
   }
+  &__group {
+    display: flex;
+    flex-flow: row;
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
 
   &__actions {
     -webkit-app-region: none;
     display: flex;
     flex-flow: row;
     align-items: center;
+    justify-content: space-between;
   }
 
   &__btn {
     -webkit-app-region: none;
     z-index: 1000;
     margin-left: 16px;
+
     &:first-of-type {
       margin-left: 0;
     }

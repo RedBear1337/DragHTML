@@ -79,6 +79,7 @@ export default {
   flex-flow: column;
   width: 100%;
   max-width: 228px;
+  height: 100vh;
 
   &__header {
     display: flex;
@@ -111,7 +112,8 @@ export default {
   &__content {
     display: flex;
     flex-flow: column;
-    height: calc(100vh - 58px);
+    //height: calc(100vh);
+    height: 100%;
     overflow-y: auto;
     padding: 16px 6px;
   }
