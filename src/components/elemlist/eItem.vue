@@ -48,7 +48,7 @@ export default {
       this.dragged = event.target;
       this.dragged.style.backgroundColor = "red";
 
-      let imgSize = this.getTargetSize(event)
+      let imgSize = this.getTargetSize(event);
 
       event.dataTransfer.dropEffect = 'copy';
       event.dataTransfer.effectAllowed = 'copy';

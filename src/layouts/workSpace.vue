@@ -3,11 +3,12 @@
     <!-- Header Bar -->
     <headerBar/>
     <div ref="content" class="workSpace__content">
-      <dropZone v-for="(zone, idx) of zones" 
-                :key="zone.name" 
-                :size="{h:zone.height}" 
+      <dropZone v-for="(zone, idx) of zones"
+                :key="zone.name"
+                :size="{h:zone.height}"
                 :id="idx+1"
-      @updateEvent="updateJournal"/>
+                :elems="elems"
+                @updateEvent="updateJournal"/>
     </div>
   </div>
 </template>
@@ -20,18 +21,24 @@ export default {
   name: "workSpace",
   components: {headerBar, dropZone},
   data() {
-    return {}
+    return {
+      elems: [],
+    }
   },
   methods: {
     updateJournal(zoneId) {
-      console.log('zoneId',zoneId);
-      this.$store.commit('addChange', this.$refs.content);
-    }
+      console.log('zoneId', zoneId);
+      if (zoneId === 'all') {
+
+      } else {
+        this.$store.commit('addChange', this.$refs.content);
+      }
+    },
   },
   computed: {
     zones() {
       return this.$store.getters.getZones;
-    }
+    },
   },
   watch: {},
   mounted() {

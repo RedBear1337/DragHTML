@@ -3,6 +3,7 @@
        @drop.capture.self.prevent="initDrop($event)"
        @dragover.prevent
   >
+<!--    <div class="test" style="width: 40px; height: 40px; position: relative; left: 20px; top:50px; background: greenyellow"></div>-->
   </div>
 </template>
 
@@ -38,10 +39,16 @@ export default {
       style: ''
     }
   },
+
   methods: {
     // Update
-    updateJournal() {
-      this.$emit('updateEvent', this.$el.id);
+    updateJournal(isAll) {
+      if (!isAll) {
+        this.$emit('updateEvent', this.$el.id);
+      } else {
+        this.$emit('updateEvent', 'all');
+      }
+
     },
 
     // Get methods
@@ -89,7 +96,7 @@ export default {
       let keys = Object.keys(data);
       for (let key of keys) {
         if (key === undefined) {
-          throw new Error('Ошибка во время получения данных dataTransfer');
+          throw new Error('key === undefined');
           return
         }
       }
@@ -102,7 +109,7 @@ export default {
     getElementId() {
       let sameTitle = [];
       try {
-        let children = this.getZoneElements();
+        let children = this.getAllElements();
         for (let child of children) {
           if (child.title === this.title) {
             sameTitle.push(parseInt(child.id.replace(this.title, '')));
@@ -119,8 +126,8 @@ export default {
      * Возвращает размеры и координаты всех дочерних элементов dropZone в виде массива
      * @returns {*[]}
      */
-    getZoneElements() {
-      const children = this.$el.childNodes;
+    getZoneElements(zone) {
+      const children = zone.childNodes;
       let properties = [];
       for (let child of children) {
         properties.push(
@@ -133,6 +140,18 @@ export default {
               x: child.style.left
             }
         )
+      }
+      return properties
+    },
+    /**
+     * Возвращает размеры и координаты всех дочерних элементов всех dropZone в виде массива
+     * @returns {*[]}
+     */
+    getAllElements() {
+      const zones = this.$el.parentNode.childNodes;
+      let properties = [];
+      for (let zone of zones) {
+        properties.push(...this.getZoneElements(zone))
       }
       return properties;
     },
@@ -191,7 +210,11 @@ export default {
       } else {
         return htmlCode = htmlCode.slice(0, openTagCharAt) + titleName + ' ' + htmlCode.slice(openTagCharAt);
       }
-    },/**
+    },
+
+
+    // Create elem Methods
+    /**
      * Преобразует передаваемые через transferData данные в форму для вставки.
      * @param event
      * @param transferData
@@ -213,7 +236,7 @@ export default {
 
       // Init
       try {
-        if (!this.checkPlaceFreedom(event, false, {width: 100, height: 100, id: this.title + this.elemId})) {
+        if (!this.checkPlaceFreedom(event, false, this.$el, {width: 100, height: 100, id: this.title + this.elemId})) {
           this.initElement(event)
         }
       } catch (e) {
@@ -238,32 +261,6 @@ export default {
       this.initDraggable();
     },
     /**
-     * Копирует и вставляет элемент
-     * @param event
-     * @param {Node} elem - скопированный элемент
-     */
-    insertCopied(event, elem) {
-      const w = elem.style.width;
-      const h = elem.style.height;
-      const calcPos = this.getPastePosition(event, 5, w, h);
-      let div = document.createElement('div');
-
-      // Что применится - стили mounted компонента (которые style) или div?
-      // div.style.position: relative;
-      div.style.left = calcPos.x + 'px';
-      div.style.top = calcPos.y + 'px';
-      // elem.style.top = calcPos.y + 'px';
-      try {
-        this.$el.appendChild(div);
-      } catch (e) {
-        throw new Error('Не удалось вставить элемент');
-        return
-      }
-      this.dragged.__vue__.$mount(this.$el.lastChild);
-    },
-
-    // Init Methods
-    /**
      * Инициализация и рендер элемента в dropZone
      * @param event
      */
@@ -280,7 +277,7 @@ export default {
             {
               propsData: {
                 pos: this.pastePos,
-                size: {w: w, h: h}
+                size: {w: w, h: h},
               },
               store
             }
@@ -295,6 +292,8 @@ export default {
         return;
       }
     },
+
+    // Init Methods
     /**
      * Вешает drag ивенты на созданный элемент
      * @param id
@@ -319,20 +318,27 @@ export default {
       try {
         transferData = this.getTransferData();
         this.$store.commit('clearDataTransfer');
+        if (!transferData.prepare) {
+          if (!transferData.dragged) {
+            console.warn('Перетаскиваемый объект не является подходящим для вставки. initDrop');
+            return;
+          }
+        }
       } catch (e) {
-        console.error(e);
+        console.error('Ошибка во время получения данных dataTransfer: ', e);
         return
       }
-
       if (transferData.prepare) {
         this.insertTransformed(event, transferData);
         this.updateJournal();
       } else {
-        let elem = this.dragged;
-        if (!this.checkPlaceFreedom(event, elem, false)) {
-          // this.insertCopied(event, elem);
-          // this.removeOrigin(elem.id);
-          // this.initDraggable(elem.id);
+        let elem = transferData.dragged;
+
+        if (!this.checkPlaceFreedom(event, elem, event.target, false)) {
+          if (!this.checkZone(event, elem)) {
+            this.changeZone(event, elem);
+          }
+
           this.changePlace(event, elem);
           this.updateJournal();
         }
@@ -356,6 +362,7 @@ export default {
 
       e.dataTransfer.setDragImage(e.target, w, h);
 
+      this.$store.commit('setDataTransfer', {dragged: this.dragged});
       this.$store.commit('setShowState', {name: 'showElemBorders', state: true});
     },
     dragEnd(e) {
@@ -469,7 +476,7 @@ export default {
      * @param {String} options.id - id элемента
      * @returns {boolean}
      */
-    checkPlaceFreedom(event, elem, options) {
+    checkPlaceFreedom(event, elem, zone, options) {
       let w;
       let h;
       try {
@@ -497,7 +504,7 @@ export default {
       let checkElements;
       try {
         let elemId = elem.id || options.id;
-        checkElements = this.getZoneElements().filter(child => child.id !== elemId);
+        checkElements = this.getZoneElements(zone).filter(child => child.id !== elemId);
       } catch (e) {
         throw new Error('Ошибка при получении списка элементов зоны: ')+e;
         return
@@ -526,11 +533,27 @@ export default {
       }
       return result
     },
+    /**
+     * Возвращает результат сравнения id родительского элемента event и elem. Те, поменялась ли зона
+     * @param {Event} e
+     * @param {Node} elem
+     * @returns {boolean}
+     */
+    checkZone(e, elem) {
+      const parentZoneId = elem.parentNode.id;
+      const targetZoneId = e.target.id;
+      return parentZoneId === targetZoneId;
+    },
 
     // Position change
-    removeOrigin(id) {
-      let origin = document.getElementById(id);
-      origin.remove();
+    /**
+     * Перемещает элемент в dropZone, который является e.target
+     * @param e
+     * @param elem
+     */
+    changeZone(e, elem) {
+      const targetZone = e.target;
+      targetZone.append(elem);
     },
     /**
      * Устанавливает новые координаты для элемента на основе местоположения курсора
@@ -582,6 +605,7 @@ export default {
   cursor: alias;
   width: 100%;
   margin: 0 auto;
+  overflow: hidden;
 }
 
 .showBorder {
