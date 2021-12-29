@@ -1,6 +1,6 @@
 <template>
   <div class="journalNav">
-    <customBtn :disabled="journal.length < 1" class="journalNav__btn" :short="true" :data="{img: 'undo', alt: 'undo', func: prevStep}"/>
+    <customBtn :disabled="false" class="journalNav__btn" :short="true" :data="{img: 'undo', alt: 'undo', func: prevStep}"/>
     <customBtn class="journalNav__btn" :short="true" :data="{img: 'redo', alt: 'redo', func: nextStep}"/>
   </div>
 </template>
@@ -16,18 +16,15 @@ export default {
   },
   methods: {
     prevStep() {
-
+      this.$store.commit('moveStep', -1);
     },
     nextStep() {
-
+      this.$store.commit('moveStep', 1);
     }
   },
   computed: {
-    journal() {
-      return this.$store.getters.getJournal;
-    },
     step() {
-      return this.$store.getters.getJournalStep;
+      return this.$store.getters.getStep;
     }
   },
   watch: {},

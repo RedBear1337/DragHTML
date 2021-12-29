@@ -1,19 +1,10 @@
 export default {
     state() {
         return {
-            journal: [],
-            currentStep: 0,
+            step: 0,
         }
     },
     mutations: {
-        /**
-         * Добавить запись в журнал
-         * @param state
-         * @param data
-         */
-        addChange(state, data) {
-            state.journal.unshift(data);
-        },
         /**
          * Установить текущий шаг
          * @param state
@@ -28,19 +19,13 @@ export default {
          * @param {Number} steps - 5 => +5 шагов || -5 => -5 шагов
          */
         moveStep(state, steps) {
-            state.currentStep += steps;
+            state.step += steps;
         }
     },
     getters: {
-        getJournalStep(state) {
-            return state.currentStep;
+        getStep(state) {
+            return state.step;
         },
-        getJournal(state) {
-            return state.journal;
-        },
-
     },
-    actions: {
-
-    }
+    actions: {}
 }

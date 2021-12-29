@@ -42,13 +42,8 @@ export default {
 
   methods: {
     // Update
-    updateJournal(isAll) {
-      if (!isAll) {
+    updateEvent() {
         this.$emit('updateEvent', this.$el.id);
-      } else {
-        this.$emit('updateEvent', 'all');
-      }
-
     },
 
     // Get methods
@@ -330,7 +325,7 @@ export default {
       }
       if (transferData.prepare) {
         this.insertTransformed(event, transferData);
-        this.updateJournal();
+        this.updateEvent();
       } else {
         let elem = transferData.dragged;
 
@@ -340,7 +335,7 @@ export default {
           }
 
           this.changePlace(event, elem);
-          this.updateJournal();
+          this.updateEvent();
         }
       }
     },

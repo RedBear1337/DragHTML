@@ -7,8 +7,7 @@
                 :key="zone.name"
                 :size="{h:zone.height}"
                 :id="idx+1"
-                :elems="elems"
-                @updateEvent="updateJournal"/>
+                @updateEvent=""/>
     </div>
   </div>
 </template>
@@ -22,26 +21,85 @@ export default {
   components: {headerBar, dropZone},
   data() {
     return {
-      elems: [],
+      maxStack: 20,
+      undoStack: [],
+      redoStack: []
     }
   },
   methods: {
-    updateJournal(zoneId) {
-      console.log('zoneId', zoneId);
-      if (zoneId === 'all') {
+    updateUndo(records) {
+      if (records.length > 0) {
+        let tempUndo = [];
+        let add = [];
+        let remove = [];
 
-      } else {
-        this.$store.commit('addChange', this.$refs.content);
+        // records.forEach(item=>console.log(item));
+        records.forEach(record => {
+          if (record.type === 'childList') {
+            if (record.addedNodes.length > 0) {
+              add.push({target: record.target, node: record.addedNodes});
+            }
+            if (record.removedNodes.length > 0) {
+              remove.push({target: record.target, node: record.removedNodes});
+            }
+          }
+        });
+        [add, remove] = this.cutDups({add: add, remove: remove});
+        tempUndo.push({add, remove});
       }
     },
+    cutIgnore(records) {
+      let cutted = [];
+      records.forEach(record => {
+        if (record.attributeName !== 'class' && !record.target.classList.contains('showBorder')) {
+          cutted.push(record);
+        }
+      })
+      return cutted
+    },
+    // Не работает
+    cutDups(nodes) {
+      let tempAdd = nodes.add;
+      let tempRemove = nodes.remove;
+      nodes.add.forEach(added => {
+        if (nodes.remove.findIndex(removed => removed.node === added.node) > -1) {
+          let index = nodes.add.findIndex(add => add === added);
+          tempAdd = tempAdd.slice(0, index) + tempAdd.slice(index);
+        }
+      })
+      return [tempAdd, tempRemove];
+    }
   },
   computed: {
     zones() {
       return this.$store.getters.getZones;
     },
+    stepNumber() {
+      return this.$store.getters.getStep;
+    }
   },
-  watch: {},
+  watch: {
+    stepNumber(value) {
+      console.log('step', value);
+    }
+  },
   mounted() {
+
+    let observer = new MutationObserver(records => {
+      this.updateUndo(this.cutIgnore(records));
+    });
+    let obsCfg = {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeOldValue: true,
+      characterDataOldValue: true,
+    }
+    observer.observe(this.$refs.content, obsCfg);
+    const changes = observer.takeRecords()
+    // console.log('changes', changes);
+
+
     this.$store.commit('addZone', {name: 'zone1', y: 0, height: 200});
   }
 }
@@ -56,10 +114,12 @@ export default {
   //height: calc(100vh - 58px);
   width: 100%;
   overflow-x: hidden;
+  overflow-y: hidden;
 
   &__content {
-    height: 100%;
+    height: calc(100vh - 58px);
     width: 100%;
+    overflow-y: auto;
   }
 }
 </style>
