@@ -1,1 +1,10 @@
-{}
+{"test": {
+    "htmlCode": "<div class='dragText'><span>Some text</span></div>",
+    "style": "simple",
+    "sizeInPixel": {"w": 80, "h": 24}
+},
+"testTable": {
+    "htmlCode": "<table class='dragTable'><thead><tr><th class='dragTable-test'></th><th class='dragTable-test'></th><th class='dragTable-test'>Тестовый текст</th><th class='dragTable-test'></th><th class='dragTable-test'></th></tr></thead><tbody><tr><td class='dragTable-test'></td><td class='dragTable-test'></td><td class='dragTable-test'></td><td class='dragTable-test'></td><td class='dragTable-test'>Не тестовый текст</td></tr></tbody></table>",
+    "style": "table",
+    "sizeInPixel": {"w": 276, "h": 71}
+}}

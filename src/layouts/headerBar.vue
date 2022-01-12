@@ -4,9 +4,10 @@
     <div class="headerBar__actions">
       <div class="headerBar__group">
         <customBtn class="headerBar__btn" :short="true" :data="{img: 'settings', alt: 'Conf', func: ''}"/>
-        <customBtn class="headerBar__btn" :short="true" :data="{img: 'dropZone', alt: 'addZone', func: this.addZone}"/>
+        <customBtn class="headerBar__btn short" :short="true"
+                   :data="{img: 'dropZone', alt: 'addZone', func: this.addZone}"/>
       </div>
-      <journalNav class="headerBar__group" />
+      <journalNav class="headerBar__group"/>
     </div>
     <!-- Title -->
     <span class="headerBar__title">
@@ -15,6 +16,7 @@
     <!-- Main Actions -->
     <div class="headerBar__actions">
       <customBtn class="headerBar__btn" :type="'underline'" :data="{message: 'Take a pic'}"/>
+      <customBtn class="headerBar__btn" :type="'squared'" :data="{message: 'Export', func: this.exportTemplate}"/>
     </div>
     <button class="headerBar__control" @click="closeWin">
       <img src="../assets/svg/close.svg" alt="X" class="iconBtn">
@@ -32,25 +34,39 @@ export default {
   name: "headerBar",
   components: {customBtn, journalNav},
   data: function () {
-    return {}
+    return {
+      exportData: {}
+    }
   },
   methods: {
     hideWin() {
-      electron.ipcRenderer.send('service', {action: 'hide-win'});
+      electron.ipcRenderer.send('window', {action: 'hide-win'});
     },
     closeWin() {
-      electron.ipcRenderer.send('service', {action: 'close-win'});
+      electron.ipcRenderer.send('window', {action: 'close-win'});
     },
 
     addZone() {
       let zones = this.$store.getters.getZones;
-      this.$store.commit('addZone', {id: 'zone'+zones.length+1, y: 0, height: 200});
+      this.$store.commit('addZone', {name: 'zone' + (zones.length + 1), y: 0, height: 200});
+    },
+
+    async exportTemplate() {
+      this.exportData = await electron.ipcRenderer.invoke('gett', {action: 'getMustache'});
+      
+      await electron.ipcRenderer.send('fileOperations', {action: 'write', fileName: 'mustacheData', format: 'json', data: JSON.stringify(this.exportData)})
+      console.log('exportData', this.exportData);
     }
   },
   computed: {},
   watch: {},
   mounted() {
-
+    electron.ipcRenderer.on('service', (event, arg)=>{
+      switch (arg.action) {
+        case 'export-template':
+          console.log('data',arg.data);
+      }
+    })
   },
 }
 </script>
@@ -99,19 +115,33 @@ export default {
       }
     }
   }
+
   &__group {
     display: flex;
     flex-flow: row;
     justify-content: flex-start;
     align-items: flex-start;
+    margin-right: 18px;
+
+    &:last-of-type {
+      margin-right: 0;
+    }
   }
 
   &__actions {
-    -webkit-app-region: none;
     display: flex;
     flex-flow: row;
     align-items: center;
-    justify-content: space-between;
+
+    flex: 0 0 50%;
+
+    &:first-of-type {
+      justify-content: flex-start;
+    }
+
+    &:last-of-type {
+      justify-content: flex-end;
+    }
   }
 
   &__btn {
@@ -121,6 +151,10 @@ export default {
 
     &:first-of-type {
       margin-left: 0;
+    }
+
+    &.short {
+      margin-left: 9px;
     }
   }
 

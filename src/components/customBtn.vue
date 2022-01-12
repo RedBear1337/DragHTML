@@ -44,6 +44,7 @@ export default {
 @import "~@/assets/scss/app.scss";
 
 .cBtn {
+  -webkit-app-region: none;
   display: flex;
   align-items: center;
   justify-content: center;

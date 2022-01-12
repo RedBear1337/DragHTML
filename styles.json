@@ -1,1 +1,27 @@
-"{}"
+{
+    "simple": {
+        "styleCode": [
+            { "class": ".dragText", "rules": "color: red;" }
+        ]
+    },
+    "table": {
+        "styleCode": [
+            {
+                "class": ".dragTable",
+                "rules": "border-collapse: collapse; border-spacing: 0;"
+            },
+            {
+                "class": "td",
+                "rules": "border-color: black; border-style: solid; border-width: 1px; font-family: Arial, sans-serif; font-size: 14px; overflow: hidden; padding:10px 5px; word-break: normal;"
+            },
+            {
+                "class": "th",
+                "rules": "border-color: black; border-style :solid; border-width: 1px; font-family: Arial, sans-serif; font-size: 14px; font-weight: normal; overflow: hidden; padding: 10px 5px; word-break: normal;"
+            },
+            {
+                "class": ".dragTable-test",
+                "rules": "text-align: left; vertical-align: top"
+            }
+        ]
+    }
+}

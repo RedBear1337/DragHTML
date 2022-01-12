@@ -1,30 +1,32 @@
 <template>
   <div class="workSpace">
     <!-- Header Bar -->
-    <headerBar/>
+    <headerBar />
     <div ref="content" class="workSpace__content">
-      <dropZone v-for="(zone, idx) of zones"
-                :key="zone.name"
-                :size="{h:zone.height}"
-                :id="idx+1"
-                @updateEvent=""/>
+      <dropZone
+        v-for="(zone, idx) of zones"
+        :key="zone.name"
+        :size="{ h: zone.height }"
+        :id="idx + 1"
+      />
     </div>
   </div>
 </template>
 
 <script>
+import electron from "electron";
 import headerBar from "@/layouts/headerBar";
 import dropZone from "@/components/drop/dropZone";
 
 export default {
   name: "workSpace",
-  components: {headerBar, dropZone},
+  components: { headerBar, dropZone },
   data() {
     return {
       maxStack: 20,
       undoStack: [],
-      redoStack: []
-    }
+      redoStack: [],
+    };
   },
   methods: {
     updateUndo(records) {
@@ -34,41 +36,52 @@ export default {
         let remove = [];
 
         // records.forEach(item=>console.log(item));
-        records.forEach(record => {
-          if (record.type === 'childList') {
+        records.forEach((record) => {
+          if (record.type === "childList") {
             if (record.addedNodes.length > 0) {
-              add.push({target: record.target, node: record.addedNodes});
+              add.push({ target: record.target, node: record.addedNodes });
             }
             if (record.removedNodes.length > 0) {
-              remove.push({target: record.target, node: record.removedNodes});
+              remove.push({ target: record.target, node: record.removedNodes });
             }
           }
         });
-        [add, remove] = this.cutDups({add: add, remove: remove});
-        tempUndo.push({add, remove});
+        [add, remove] = this.cutDups({ add: add, remove: remove });
+        tempUndo.push({ add, remove });
       }
     },
     cutIgnore(records) {
       let cutted = [];
-      records.forEach(record => {
-        if (record.attributeName !== 'class' && !record.target.classList.contains('showBorder')) {
+      records.forEach((record) => {
+        if (
+          record.attributeName !== "class" &&
+          !record.target.classList.contains("showBorder")
+        ) {
           cutted.push(record);
         }
-      })
-      return cutted
+      });
+      return cutted;
     },
     // Не работает
     cutDups(nodes) {
       let tempAdd = nodes.add;
       let tempRemove = nodes.remove;
-      nodes.add.forEach(added => {
-        if (nodes.remove.findIndex(removed => removed.node === added.node) > -1) {
-          let index = nodes.add.findIndex(add => add === added);
+      nodes.add.forEach((added) => {
+        if (
+          nodes.remove.findIndex((removed) => removed.node === added.node) > -1
+        ) {
+          let index = nodes.add.findIndex((add) => add === added);
           tempAdd = tempAdd.slice(0, index) + tempAdd.slice(index);
         }
-      })
+      });
       return [tempAdd, tempRemove];
-    }
+    },
+
+    mAddZone(zone) {
+      let lastZone = zone[zone.length - 1];
+      electron.ipcRenderer.send('service', {action: 'addMustache', zone: zone, elem: 'dropZone'})
+      console.log(lastZone);
+    },
   },
   computed: {
     zones() {
@@ -76,16 +89,18 @@ export default {
     },
     stepNumber() {
       return this.$store.getters.getStep;
-    }
+    },
   },
   watch: {
+    zones(zone) {
+      this.mAddZone(zone);
+    },
     stepNumber(value) {
-      console.log('step', value);
-    }
+      console.log("step", value);
+    },
   },
   mounted() {
-
-    let observer = new MutationObserver(records => {
+    let observer = new MutationObserver((records) => {
       this.updateUndo(this.cutIgnore(records));
     });
     let obsCfg = {
@@ -94,15 +109,20 @@ export default {
       attributes: true,
       attributeOldValue: true,
       characterDataOldValue: true,
-    }
+    };
     observer.observe(this.$refs.content, obsCfg);
-    const changes = observer.takeRecords()
+    const changes = observer.takeRecords();
     // console.log('changes', changes);
+    
+    this.$store.commit("addZone", { name: "zone1", y: 0, height: 200 });
 
-
-    this.$store.commit('addZone', {name: 'zone1', y: 0, height: 200});
-  }
-}
+    let maxWidth = getComputedStyle(this.$refs.content, false).width;
+    electron.ipcRenderer.send("service", {
+      action: "initMustache",
+      maxWidth: maxWidth,
+    });
+  },
+};
 </script>
 
 <style lang="scss">

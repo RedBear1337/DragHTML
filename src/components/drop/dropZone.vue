@@ -11,6 +11,7 @@
 import Vue from 'vue'
 import store from "@/store";
 
+import electron from "electron";
 import resizableContainer from "@/components/drop/resizableContainer";
 
 export default {
@@ -325,6 +326,7 @@ export default {
       }
       if (transferData.prepare) {
         this.insertTransformed(event, transferData);
+        electron.ipcRenderer.send('service', {action: 'addMustache', zone: this.$el.id.replace('zone',''), elem: transferData.title})
         this.updateEvent();
       } else {
         let elem = transferData.dragged;
@@ -561,6 +563,7 @@ export default {
     },
   },
   computed: {
+  
     styles() {
       return this.$store.getters.getStyles;
     },

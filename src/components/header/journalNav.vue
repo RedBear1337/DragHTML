@@ -37,6 +37,13 @@ export default {
 <style lang="scss">
 .journalNav {
   &__btn {
+    -webkit-app-region: none;
+    z-index: 1000;
+    margin-left: 9px;
+
+    &:first-of-type {
+      margin-left: 0;
+    }
     &:disabled {
       background: rgba(135, 127, 127, 0.56);
       cursor: default;

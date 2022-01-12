@@ -34,7 +34,7 @@ export default {
      * Открывает окно добавления нового элемента
      */
     addNew() {
-      // let answer = electron.ipcRenderer.invoke('write', {action: 'writeElementsList'})
+      // let answer = electron.ipcRenderer.send('fileOperations', {action: 'write'})
       // if (answer) {
       //   this.$store.commit('addElement', );
       // }
