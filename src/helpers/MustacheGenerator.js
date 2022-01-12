@@ -1,5 +1,11 @@
 import mustache from "mustache/mustache.mjs";
 
+ /* 
+  НЕЛЬЗЯ ВКЛАДЫВАТЬ В ОДИН КЛАСС БОЛЬШЕ ОДНОГО СТИЛЯ
+  В элементах не должен быть прописан style='...
+  В конце стиля должна стоять ;
+  В стиле следует использовать одинарные кавычки (')
+  */
 export class MustacheGenerator {
     constructor(elems, styles) {
         this.elems = elems;
@@ -8,30 +14,26 @@ export class MustacheGenerator {
         this.stylesKeys = Object.keys(this.styles);
 
         this.template = {};
+        this.styleWrap = {};
+        this.classes = [];
 
         this.zones = [];
     }
     /**
      *
      * @param {*} maxWidth
-     * @returns {{ html, endHtml, head, endHead, body, endBody}}
+     * @returns {{ html, endHtml, head, style, endStyle, endHead, body, endBody}}
      */
     preGenerateTemplate(maxWidth) {
         const html = "<html lang='en'>";
-        const head =
-            `<head><meta charset='utf-8'><title>dragHTML</title>`;
+        const head = `<head><meta charset='utf-8'><title>dragHTML</title>`;
+        const style = `<style type='text/css'>`;
+        const endStyle = `</style>`;
         const endHead = "</head>";
-        const body =
-            `<body><div class='container' style='width: 100%; max-width: ${maxWidth}; margin: 0 auto; display: flex; flex-flow: column; align-items: flex-start; justify-content: flex-start;'>`;
+        const body = `<body><div class='container' style='width: 100%; max-width: ${maxWidth}; margin: 0 auto; display: flex; flex-flow: column; align-items: flex-start; justify-content: flex-start;'>`;
         const endBody = "</div>" + "</body>";
         const endHtml = "</html>";
-        return {html,
-            endHtml,
-            head,
-            endHead,
-            body,
-            endBody}
-        ;
+        return { html, endHtml, head, style, endStyle, endHead, body, endBody };
     }
     initMustache(maxWidth) {
         this.template = this.preGenerateTemplate(maxWidth);
@@ -55,21 +57,17 @@ export class MustacheGenerator {
         return classes;
     }
     transformClassToStyles(html, elems) {
-        // Перебираем список классов. Формируем полные стили. Проще всего просто заменять class на style и наполнять его полными стилями.
-        // **** ДОБАВИТЬ ПРАВИЛО ВЁРСТКИ - НЕЛЬЗЯ ВКЛАДЫВАТЬ В ОДИН КЛАСС БОЛЬШЕ ОДНОГО СТИЛЯ, ИНАЧЕ СТАНОВИТСЯ ТЯЖЕЛО ОПРЕДЕЛИТЬ КУДА КАКОЙ СТИЛЬ ОПРЕДЕЛЯЕТСЯ ПРИ ФОРМИРОВАНИИ MUSTACHE
-        // В элементах не должен быть прописан style='...
-        // В конце стиля доожна стоять ;
         for (let elem of elems) {
             let cycle = true;
             while (cycle) {
                 try {
-                    elem.class = elem.class.replace('.', '');
+                    elem.class = elem.class.replace(".", "");
                 } catch (e) {
-                    throw e
+                    throw e;
                 }
 
                 let insertedVar = `class=[/'"]${elem.class}[/'"]`;
-                let reg = new RegExp(insertedVar, 'g');
+                let reg = new RegExp(insertedVar, "g");
                 let find = html.search(reg);
                 if (find > -1) {
                     html = html.replace(reg, `style='${elem.rules}'`);
@@ -85,26 +83,31 @@ export class MustacheGenerator {
         if (elem !== "dropZone") {
             if (this.elKeys.some((el) => el == elem)) {
                 let { htmlCode, style } = this.elems[elem];
+                let styles = style;
                 try {
-                    if (this.stylesKeys.some((s) => s === style)) {
-                        style = this.getStyleByName(style);
+                    if (this.stylesKeys.some((s) => s === styles)) {
+                        styles = this.getStyleByName(styles);
                     } else {
                         throw new Error("Указанный стиль не найден");
                     }
                 } catch (e) {
                     console.error("Ошибка при получении стилей: ", e);
                 }
-                try {
-                    htmlCode = this.transformClassToStyles(htmlCode, style);
-                } catch (e) {
-                    console.error(e);
-                    throw new Error("Ошибка при преобразовании классов");
+
+                for (let styleClass of styles) {
+                    if (
+                        !this.classes.some(
+                            (style) => style.class == styleClass.class
+                        )
+                    ) {
+                        this.classes.push(styleClass);
+                    }
                 }
 
                 let curZone = this.zones.find((z) => z.id == zone);
                 curZone.items.push(htmlCode);
             } else {
-                throw new Error('Элемент не найден в списке размещенных');
+                throw new Error("Элемент не найден в списке размещенных");
             }
         } else {
             this.zones.push({
@@ -116,10 +119,13 @@ export class MustacheGenerator {
         }
     }
     async getZones() {
-       return this.zones; 
+        return this.zones;
     }
     async getTemplate() {
         return this.template;
+    }
+    async getClasses() {
+        return this.classes;
     }
 }
 
@@ -138,6 +144,16 @@ let wrappers = {
 /* mustache scheme
 {{{template.html}}}
 {{{template.head}}}
+
+{{{template.style}}}
+{{#classes}}
+{{class}}{ 
+{{rules}} 
+}
+{{/classes}}
+{{{template.endStyle}}}
+
+{{{template.endHead}}}
 {{{template.body}}}
     {{#zones}}
         {{{zone}}}
@@ -145,21 +161,36 @@ let wrappers = {
         {{{endZone}}}
     {{/zones}}
 {{{template.endBody}}}
-{{{template.endHead}}}
 {{{template.endHtml}}}
 */
 /* mustache view
-"zones": [
+{
+    "zones": [
         {
-            "zone": "<div id='zone1' class='zone'>", "endZone": "</div>", 
-                "items": [
-                "<div id='1' class='dragText'><span>Some text</span></div>", 
-                "2", 
-                "<div id='2' class='dragText'><span>Some text</span></div>"
-                ]
-        },
-        {
-            "zone": "<div class='zone'></div>", "items": ["6", "5", "6"]
+            "id": 1,
+            "zone": "<div id='zone1' class='zone'>",
+            "endZone": "</div>",
+            "items": [
+                "<div class='dragText'><span>Some text</span></div>",
+                "<table class='dragTable'><thead><tr><th class='dragTable-test'></th><th class='dragTable-test'></th><th class='dragTable-test'>Тестовый текст</th><th class='dragTable-test'></th><th class='dragTable-test'></th></tr></thead><tbody><tr><td class='dragTable-test'></td><td class='dragTable-test'></td><td class='dragTable-test'></td><td class='dragTable-test'></td><td class='dragTable-test'>Не тестовый текст</td></tr></tbody></table>"
+            ]
         }
-]
+    ],
+    "classes": [
+        {
+            "class": ".dragText",
+            "rules": "color: red;"
+        }
+    ],
+    "template": {
+        "html": "<html lang='en'>",
+        "endHtml": "</html>",
+        "head": "<head><meta charset='utf-8'><title>dragHTML</title>",
+        "style": "<style type='text/css'>",
+        "endStyle": "</style>",
+        "endHead": "</head>",
+        "body": "<body><div class='container' style='width: 100%; max-width: 574px; margin: 0 auto; display: flex; flex-flow: column; align-items: flex-start; justify-content: flex-start;'>",
+        "endBody": "</div></body>"
+    }
+}
 */

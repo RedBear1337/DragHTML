@@ -57,7 +57,7 @@ let m;
     try {
         m = new MustacheGenerator(JSON.parse(elements), JSON.parse(styles));
     } catch (e) {
-        console.error('Ошибка при создании класса: mustacheGenerate. ', e);
+        console.error('Ошибка при создании класса: MustacheGenerato. ', e);
     }
 })()
 
@@ -71,13 +71,15 @@ electron.ipcMain.handle("gett", async (event, arg) => {
             let compilatedTemplate;
             try {
                 let zones = await m.getZones();
+                let classes = await m.getClasses()
                 let template = await m.getTemplate();
                 compilatedTemplate = {
                     zones: zones,
+                    classes: classes,
                     template: template,
                 };
             } catch (e) {
-                console.error("Ошибка при получении mustache", e);
+                console.error("Ошибка при получении mustache: ", e);
             }
             return JSON.stringify(compilatedTemplate);
     }
