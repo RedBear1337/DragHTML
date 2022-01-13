@@ -64,24 +64,29 @@ let m;
 electron.ipcMain.handle("gett", async (event, arg) => {
     switch (arg.action) {
         case "getElementsList":
-            return JSON.parse(elements);
-        case "getStylesList":
-            return JSON.parse(styles);
-        case "getMustache":
-            let compilatedTemplate;
+            let elements;
             try {
-                let zones = await m.getZones();
-                let classes = await m.getClasses()
-                let template = await m.getTemplate();
-                compilatedTemplate = {
-                    zones: zones,
-                    classes: classes,
-                    template: template,
-                };
+            elements = JSON.parse(elements);
+            } catch (e) {
+                console.error('Ошибка при получении файла элементов: ', e);
+            }
+            return elements
+        case "getStylesList":
+            let styles;
+            try {
+                 styles = JSON.parse(styles);
+            } catch (e) {
+                console.error('Ошибка при получении файла стилей: ', e);
+            }
+            return styles
+        case "getMustache":
+            let mustache;
+            try {
+                mustache = await m.getMustache();
             } catch (e) {
                 console.error("Ошибка при получении mustache: ", e);
             }
-            return JSON.stringify(compilatedTemplate);
+            return JSON.stringify(mustache);
     }
 });
 

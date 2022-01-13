@@ -1,6 +1,12 @@
 import * as fs from "fs";
 
 export class FileManager {
+    /**
+     * Возвращает результат проверки существования файла
+     * @param {string} fileName - имя файла
+     * @param {string} format - формат файла без точки
+     * @returns {boolean | error}
+     */
     static existingCheck(fileName, format) {
         let isExist;
         try {
@@ -11,6 +17,13 @@ export class FileManager {
         
         return isExist;
     }
+    /**
+     * 
+     * @param {string} fileName - имя файла
+     * @param {string} data 
+     * @param {string} format - формат файла без точки
+     * @returns 
+     */
     static async write(fileName, data, format) {
         try {
             fs.writeFileSync(
@@ -28,6 +41,12 @@ export class FileManager {
             throw e;
         }
     }
+    /**
+     * Возвращает прочитанный файл
+     * @param {string} fileName - имя файла
+     * @param {string} format - формат файла без точки
+     * @returns 
+     */
     static async getFile(fileName, format) {
         try {
             if (!this.existingCheck(fileName, format)) return false;
