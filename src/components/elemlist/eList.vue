@@ -4,7 +4,8 @@
       <h1 class="elist__title">ELEMENTS</h1>
       <div class="elist__actions">
         <customBtn class="elist__btn" :short="true" :data="{img: 'add', alt: '+', func: this.addNew}"/>
-        <dropBtn class="elist__btn" :ops="{store: 'eList', placeholder: 'Style', content: cont}" />
+        <!-- Заменить content: cont на список стилей для элементов -->
+        <!-- <dropBtn class="elist__btn" :ops="{store: 'eList', placeholder: 'Style', content: cont}" /> -->
       </div>
     </div>
     <div class="elist__content">
@@ -24,9 +25,7 @@ export default {
   components: {dropBtn, customBtn, eItem},
   data() {
     return {
-      cont: [
 
-      ],
     }
   },
   methods: {
@@ -56,7 +55,8 @@ export default {
         arr.push({
           title: key,
           html: list[key].htmlCode,
-          style: list[key].style
+          style: list[key].style,
+          defaultSize: list[key].defaultSize
         })
       }
       return arr;
@@ -64,9 +64,9 @@ export default {
   },
   watch: {},
   mounted() {
-    for (let i = 1; i<21;i++) {
-      this.cont.push(i);
-    }
+    // for (let i = 1; i<21;i++) {
+    //   this.cont.push(i);
+    // }
   }
 }
 </script>

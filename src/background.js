@@ -57,7 +57,7 @@ let m;
     try {
         m = new MustacheGenerator(JSON.parse(elements), JSON.parse(styles));
     } catch (e) {
-        console.error('Ошибка при создании класса: MustacheGenerato. ', e);
+        console.error('Ошибка при создании класса: MustacheGenerator. ', e);
     }
 })()
 

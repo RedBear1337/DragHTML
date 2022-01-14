@@ -20,6 +20,9 @@ export class MustacheGenerator {
         this.classes = [];
 
         this.zones = [];
+
+        // Temp
+        this.tempStyleGroup = []
     }
     /**
      * Возвращает функции для обёртки контента
@@ -43,7 +46,7 @@ export class MustacheGenerator {
         function container(tagType) {
             switch (tagType) {
                 case "open":
-                    const body = `<body><div class='container' style='width: 100%; max-width: ${maxWidth}; margin: 0 auto; display: flex; flex-flow: column; align-items: flex-start; justify-content: flex-start;'>`;
+                    const body = `<body><div class='container' style='height: 100%; width: 100%; max-width: ${maxWidth}; margin: 0 auto; display: flex; flex-flow: column; align-items: flex-start; justify-content: flex-start;'>`;
                     return body;
                 case "close":
                     const closeBody = "</div>" + "</body>";
@@ -69,10 +72,17 @@ export class MustacheGenerator {
     /**
      * Возвращает список классов для элемента по названию группы стилей
      * @param {string} styleGroupName - название группы классов
-     * @returns 
+     * @returns
      */
-    getStyleByName(styleGroupName) {
+     getStyleGroupByName(styleGroupName) {
         let classes = [];
+
+        try {
+            this.isStyleExist(styleGroupName);
+        } catch (e) {
+            throw e;
+        }
+
         try {
             console.log(this.styles[styleGroupName].styleCode);
             this.styles[styleGroupName].styleCode.forEach((prop) => {
@@ -114,6 +124,19 @@ export class MustacheGenerator {
 
     // Elem должен быть строкой - это один из импортируемого списка элементов.
 
+    isStyleExist(styleName) {
+        let isExist = this.stylesKeys.some((s) => s === styleName);
+        if (isExist) {
+            return isExist;
+        } else {
+            throw new Error("Указанный стиль не найден");
+        }
+    }
+
+    clearTempData() {
+        this.tempStyleGroup = [];
+    }
+
     /**
      * Добавляет в массив класса новый элемент
      * @param {*} zone - номер зоны, в которой размещается элемент
@@ -121,20 +144,16 @@ export class MustacheGenerator {
      */
     add(zone, elem) {
         if (elem !== "dropZone") {
-            if (this.elKeys.some((el) => el == elem)) {
-                let { htmlCode, style } = this.elems[elem];
+            if (this.elKeys.some((el) => el == elem.name)) {
+                let { htmlCode, style } = this.elems[elem.name];
                 let styles = style;
                 try {
-                    if (this.stylesKeys.some((s) => s === styles)) {
-                        styles = this.getStyleByName(styles);
-                    } else {
-                        throw new Error("Указанный стиль не найден");
-                    }
+                    this.tempStyleGroup = this.getStyleGroupByName(styles);
                 } catch (e) {
                     console.error("Ошибка при получении стилей: ", e);
                 }
 
-                for (let styleClass of styles) {
+                for (let styleClass of this.tempStyleGroup) {
                     if (
                         !this.classes.some(
                             (style) => style.class == styleClass.class
@@ -144,8 +163,67 @@ export class MustacheGenerator {
                     }
                 }
 
+                function isStylePropExist(html) {
+                    let reg = new RegExp("style=['\"]?w*['\"]?", "gm");
+                    let result = html.search(reg);
+                    return result > -1;
+                }
+
+                function addSizeToStyle(html, sizeObj) {
+                    let reg = new RegExp("style=['\"]?w*['\"]?", "gm");
+                    let addIndex = html.search(reg) + 7;
+                    return (
+                        html.slice(0, addIndex) +
+                        `width: ${sizeObj.w}px; height: ${sizeObj.h}px; ` +
+                        html.slice(addIndex)
+                    );
+                }
+
+                function addPosToStyle(html, posObj) {
+                    let reg = new RegExp("style=['\"]?w*['\"]?", "gm");
+                    let addIndex = html.search(reg) + 7;
+                    return (
+                        html.slice(0, addIndex) +
+                        `position: relative; top: ${posObj.y}px; left: ${posObj.x}px; ` +
+                        html.slice(addIndex)
+                    );
+                }
+
+                function insertSizeToStyle(html, sizeObj) {
+                    let reg = new RegExp("[>]+", "gm");
+                    let insertIndex = html.search(reg);
+                    return (
+                        html.slice(0, insertIndex) +
+                        ` style='width: ${sizeObj.w}px; height: ${sizeObj.h}px;'` +
+                        html.slice(insertIndex)
+                    );
+                }
+
+                function insertPosToStyle(html, posObj) {
+                    let reg = new RegExp("[>]+", "gm");
+                    let insertIndex = html.search(reg);
+                    // Мб не relative, можно попробовать присвоить контейнеру relative
+                    return (
+                        html.slice(0, insertIndex) +
+                        ` style='position: relative; top: ${posObj.y}px; left: ${posObj.x}px;'` +
+                        html.slice(insertIndex)
+                    );
+                }
+
+                if (isStylePropExist(htmlCode)) {
+                    htmlCode = addSizeToStyle(htmlCode, elem.size);
+                } else {
+                    htmlCode = insertSizeToStyle(htmlCode, elem.size);
+                }
+                if (isStylePropExist(htmlCode)) {
+                    htmlCode = addPosToStyle(htmlCode, elem.pos);
+                } else {
+                    htmlCode = insertPosToStyle(htmlCode, elem.pos);
+                }
+
                 let curZone = this.zones.find((z) => z.id == zone);
-                curZone.items.push(htmlCode);
+                // curZone.items.push(htmlCode);
+                curZone.items.push({ id: elem.id, html: htmlCode });
             } else {
                 throw new Error("Элемент не найден в списке размещенных");
             }
@@ -156,7 +234,16 @@ export class MustacheGenerator {
                 closeZone: "</div>",
                 items: [],
             });
+
+                if (!this.classes.some((style) => style.class == ".zone")) {
+                    this.classes.push({
+                        class: ".zone",
+                        rules: `width: 100%; height: ${zone.height}px; position: relative; top: ${zone.y}px`,
+                    }); //**** сделать такой же как с обычным элементом insert pos и size
+                }
         }
+        
+        this.clearTempData();
     }
     /**
      * Возвращает обёрнутое в объект значение
@@ -182,7 +269,7 @@ export class MustacheGenerator {
         }
 
         if (!!content) {
-            content.forEach((data) => result.push(this.wrapToObj("tag",data)));
+            content.forEach((data) => result.push(this.wrapToObj("tag", data)));
         }
 
         if (!close) {
@@ -202,7 +289,7 @@ export class MustacheGenerator {
         let zones = [];
         for (let zone of this.zones) {
             let transformedZone = zone.zone;
-            zone.items.forEach((child) => (transformedZone += child));
+            zone.items.forEach((child) => (transformedZone += child.html));
             transformedZone += zone.closeZone;
             zones.push(transformedZone);
         }
@@ -210,20 +297,18 @@ export class MustacheGenerator {
     }
     /**
      * Возвращает массив классов
-     * @returns 
+     * @returns {Array}
      */
     async getClassesInArray() {
         let classes = [];
         for (let classRule of this.classes) {
-            classes.push(
-                    `${classRule.class} {${classRule.rules}} `
-            );
+            classes.push(`${classRule.class} {${classRule.rules}} `);
         }
         return classes;
     }
     /**
      * Возвращает данные для наполнения шаблона Mustache.js
-     * @returns 
+     * @returns
      */
     async getMustache() {
         let compiledTemplate = {
@@ -236,42 +321,22 @@ export class MustacheGenerator {
 
         compiledTemplate.headTags = await this.wrapContent(
             this.templateParts.headTags,
-            this.getClasses
+            await this.getClassesInArray()
         );
 
         compiledTemplate.container = await this.wrapContent(
             this.templateParts.container,
-            this.getZones
+            await this.getZonesInArray()
         );
 
-        compiledTemplate.endTags.push({ tag: this.templateParts.endTags() });
+        compiledTemplate.endTags.push(
+            this.wrapToObj("tag", this.templateParts.endTags("close"))
+        );
 
         return compiledTemplate;
     }
 }
 
-/* mustache scheme
-{{{template.html}}}
-{{{template.head}}}
-
-{{{template.style}}}
-{{#classes}}
-{{class}}{ 
-{{rules}} 
-}
-{{/classes}}
-{{{template.closeStyle}}}
-
-{{{template.closeHead}}}
-{{{template.body}}}
-    {{#zones}}
-        {{{zone}}}
-            {{{items}}}
-        {{{closeZone}}}
-    {{/zones}}
-{{{template.closeBody}}}
-{{{template.closeHtml}}}
-*/
 /* mustache view
 {
     "zones": [
@@ -326,15 +391,15 @@ let template = {
 };
 
 /*
-{{#template.headTags}}
-{{{tag}}} => include styles
-{{/template.headTags}}
+{{#headTags}}
+{{{tag}}}
+{{/headTags}}
 
-{{#template.container}}
-{{{tag}}} => include zones
-{{/template.container}}
+{{#container}}
+{{{tag}}}
+{{/container}}
 
-{{#template.endTags}}
-{{{tag}}} => элементы, до последнего объекта, находятся в <body>. Поселдний tag закрывающий
-{{/template.endTags}}
+{{#endTags}}
+{{{tag}}}
+{{/endTags}}
 */

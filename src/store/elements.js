@@ -24,30 +24,55 @@ export default {
         return {
             elements: {
                 test: {
-                    htmlCode: '<div class="dragText"><span>Some text</span></div>',
-                    style: 'simple',
-                    sizeInPixel: {w: 80, h: 24}
+                    htmlCode:
+                        '<div class="dragText"><span>Some text</span></div>',
+                    style: "simple",
+                    defaultSize: { 
+                        w: "81px", 
+                        minW: "",
+                        maxW: "200px",
+                        h: "24px",
+                        minH: "",
+                        maxH: "200px",
+                    },
                 },
                 testTable: {
-                    htmlCode: '<table class="dragTable"><thead><tr><th class="teh"></th><th class="teh"></th><th class="teh">Тестовый текст</th><th class="teh"></th><th class="teh"></th></tr></thead><tbody><tr><td class="ted"></td><td class="ted"></td><td class="ted"></td><td class="ted"></td><td class="ted">Не тестовый текст</td></tr></tbody></table>',
-                    style: 'table',
-                    sizeInPixel: {w: 276, h: 71}
-                }
+                    htmlCode:
+                        '<table class="dragTable"><thead><tr><th class="teh"></th><th class="teh"></th><th class="teh">Тестовый текст</th><th class="teh"></th><th class="teh"></th></tr></thead><tbody><tr><td class="ted"></td><td class="ted"></td><td class="ted"></td><td class="ted"></td><td class="ted">Не тестовый текст</td></tr></tbody></table>',
+                    style: "table",
+                    defaultSize: {
+                        w: "286px",
+                        minW: "",
+                        maxW: "200px",
+                        h: "71px",
+                        minH: "",
+                        maxH: "200px",
+                    },
+                },
             },
             styles: {
                 simple: {
-                    styleCode: [{class: '.dragText', rules: 'color: red;'}]
+                    styleCode: [{ class: ".dragText", rules: "color: red;" }],
                 },
                 table: {
                     styleCode: [
-                        {class: '.dragTable', rules: 'border-collapse: collapse; border-spacing: 0;'},
-                        {class: '.ted', rules: 'text-align: left; vertical-align: top; border-color: black; border-style: solid; border-width: 1px; font-family: Arial, sans-serif; font-size: 14px; overflow: hidden; padding:10px 5px; word-break: normal;'},
-                        {class: '.teh', rules: 'text-align: left; vertical-align: top; border-color: black; border-style: solid; border-width: 1px; font-family: Arial, sans-serif; font-size: 14px; overflow: hidden; padding:10px 5px; word-break: normal;'},
-                    ]
-                }
+                        {
+                            class: ".dragTable",
+                            rules: "border-collapse: collapse; border-spacing: 0;",
+                        },
+                        {
+                            class: ".ted",
+                            rules: "text-align: left; vertical-align: top; border-color: black; border-style: solid; border-width: 1px; font-family: Arial, sans-serif; font-size: 14px; overflow: hidden; padding:10px 5px; word-break: normal;",
+                        },
+                        {
+                            class: ".teh",
+                            rules: "text-align: left; vertical-align: top; border-color: black; border-style: solid; border-width: 1px; font-family: Arial, sans-serif; font-size: 14px; overflow: hidden; padding:10px 5px; word-break: normal;",
+                        },
+                    ],
+                },
             },
-            appliedStyles: []
-        }
+            appliedStyles: [],
+        };
     },
     mutations: {
         /**
@@ -96,9 +121,10 @@ export default {
          * @param {String} styleName - название стиля
          */
         removeApplied(state, styleName) {
-            state.appliedStyles = state.appliedStyles.filter(style=>style !== styleName);
-        }
-
+            state.appliedStyles = state.appliedStyles.filter(
+                (style) => style !== styleName
+            );
+        },
     },
     getters: {
         getElements(state) {
@@ -109,7 +135,7 @@ export default {
         },
         getAppliedStyles(state) {
             return state.appliedStyles;
-        }
+        },
     },
-    actions: {}
-}
+    actions: {},
+};

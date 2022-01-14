@@ -20,6 +20,7 @@ export default {
       title: this.item.title,
       html: this.item.html,
       style: this.item.style,
+      defaultSize: this.item.defaultSize,
 
       dragged: '',
     }
@@ -59,12 +60,14 @@ export default {
       event.dataTransfer.setData('title', this.title.trim());
       event.dataTransfer.setData('html', this.html.trim());
       event.dataTransfer.setData('style', this.style.trim());
+      event.dataTransfer.setData('defaultSize', this.defaultSize);
 
       this.$store.commit('setDataTransfer', {
         prepare: true,
         title: this.title.trim(),
         html: this.html.trim(),
-        style: this.style.trim()
+        style: this.style.trim(),
+        defaultSize: this.defaultSize
       });
       this.$store.commit('setShowState', {name: 'showElemBorders', state: true});
     },
@@ -77,7 +80,7 @@ export default {
   computed: {},
   watch: {},
   mounted() {
-
+    
   }
 }
 </script>

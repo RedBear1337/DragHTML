@@ -79,8 +79,11 @@ export default {
 
     mAddZone(zone) {
       let lastZone = zone[zone.length - 1];
-      electron.ipcRenderer.send('service', {action: 'addMustache', zone: zone, elem: 'dropZone'})
-      console.log(lastZone);
+      electron.ipcRenderer.send("service", {
+        action: "addMustache",
+        zone: lastZone,
+        elem: "dropZone",
+      });
     },
   },
   computed: {
@@ -113,7 +116,7 @@ export default {
     observer.observe(this.$refs.content, obsCfg);
     const changes = observer.takeRecords();
     // console.log('changes', changes);
-    
+
     this.$store.commit("addZone", { name: "zone1", y: 0, height: 200 });
 
     let maxWidth = getComputedStyle(this.$refs.content, false).width;

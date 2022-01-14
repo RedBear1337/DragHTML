@@ -1,5 +1,6 @@
 <template>
-  <div class="resize" style="width: 100px; height: 100px" @mousedown="showHandlers">
+  <!-- :style="`width: ${this.size.w}; height: ${this.size.h}; min-width: ${this.minW}; min-height: ${this.minH}; max-width: ${this.maxW}; max-height: ${this.maxH}`"  -->
+  <div class="resize" @mousedown="showHandlers">
     <div ref="handlers" class="resize__handlers">
       <div class="resize__handler tl"/>
       <div class="resize__handler tm"/>
@@ -19,12 +20,14 @@
 export default {
   name: "resizableContainer",
   components: {},
-  props: ['pos'],
+  props: ['pos', 'size'],
   data() {
     return {
       parentSize: {},
-      minW: 30,
-      minH: 30,
+      minW: this.size.minW,
+      minH: this.size.minH,
+      maxW: this.size.maxW,
+      maxH: this.size.maxH,
       posX: 0,
       posY: 0,
 
@@ -122,7 +125,7 @@ export default {
      * @param {MouseEvent} e
      */
     handleDown(e) {
-      e.preventDefault()
+      e.preventDefault();
       this.curHandler = e.target.classList[1];
 
       this.posX = e.x;
@@ -136,8 +139,7 @@ export default {
      * @param {MouseEvent} e
      */
     handleOn(e) {
-      e.preventDefault()
-
+      e.preventDefault();
       this.setCalcStylePos(e, this.curHandler);
 
       this.posX = e.x;
@@ -159,6 +161,15 @@ export default {
     this.parentSize = {w: this.$el.parentNode.offsetWidth, h: this.$el.parentNode.offsetHeight};
     this.$el.style.top = this.pos.y + 'px';
     this.$el.style.left = this.pos.x + 'px';
+
+    this.$el.style.width = this.size.w + 'px';
+    this.$el.style.minWidth = this.size.minW + 'px';
+    this.$el.style.maxWidth = this.size.maxW + 'px';
+
+    this.$el.style.height = this.size.h + 'px';
+    this.$el.style.minHeight = this.size.minH + 'px';
+    this.$el.style.maxHeight = this.size.maxH + 'px';
+
     const handlers = this.$refs.handlers.childNodes;
     for (let handler of handlers) {
       handler.addEventListener('mousedown', this.handleDown)
