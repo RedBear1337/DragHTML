@@ -84,7 +84,7 @@ electron.ipcMain.handle("gett", async (event, arg) => {
             try {
                 mustache = await m.getMustache();
             } catch (e) {
-                console.error("Ошибка при получении mustache: ", e);
+                console.error("Ошибка при генерации mustache: ", e);
             }
             return JSON.stringify(mustache);
     }
@@ -150,10 +150,16 @@ app.on("ready", async () => {
                 break;
 
             case "addMustache":
-                try {
-                    m.add(arg.zone, arg.elem);
+                try {   
+                    if (m.isElemTypeZone(arg.elem)) {
+                        m.addZone(arg.zone);
+                    } else {
+                        m.add(arg.zone, arg.elem);
+                    }
+                    
+
                 } catch (e) {
-                    console.error(e);
+                    console.error('addMustache: ', e);
                 }
 
                 break;

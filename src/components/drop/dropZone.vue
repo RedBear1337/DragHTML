@@ -312,6 +312,8 @@ export default {
           })
         ) {
           this.initElement(event);
+        } else {
+          return;
         }
       } catch (e) {
         console.error("Ошибка во время инициализации элемента: ", e);
@@ -323,6 +325,7 @@ export default {
         this.setAttr();
       } catch (e) {
         console.error("Ошибка при установке аттрибутов: ", e);
+        return;
       }
 
       // load Classes
@@ -330,9 +333,11 @@ export default {
         this.loadRulesForClass();
       } catch (e) {
         console.error("Ошибка при загрузке стилей: ", e);
+        return;
       }
 
       this.initDraggable();
+      
       electron.ipcRenderer.send("service", {
         action: "addMustache",
         zone: this.$el.id.replace("zone", ""),
@@ -343,9 +348,9 @@ export default {
           size: {
             w: this.w,
             h: this.h,
-          }
+          },
         },
-      }); //**** не отправляются координаты и размеры, только тип элемента.
+      });
     },
     /**
      * Инициализация и рендер элемента в dropZone
@@ -587,7 +592,6 @@ export default {
         }
       } catch (e) {
         throw new Error("Ошибка при получении ширины и высоты: ") + e;
-        return;
       }
 
       let bounds;

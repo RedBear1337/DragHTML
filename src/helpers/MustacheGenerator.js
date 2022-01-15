@@ -6,6 +6,7 @@ import mustache from "mustache/mustache.mjs";
   В конце стиля должна стоять ;
   В стиле следует использовать одинарные кавычки (')
   Нельзя присваивать стиль для элемента не по классу, т.е => h1 {...}
+  Класс .zone зарезервирован
   */
 export class MustacheGenerator {
     constructor(elems, styles) {
@@ -21,11 +22,16 @@ export class MustacheGenerator {
 
         this.zones = [];
 
-        // Temp
-        this.tempStyleGroup = []
+        //===========Temp
+        this.tempStyleGroup = [];
+        // Extracted data
+        this.html = "";
+        this.styleGroupName = "";
     }
+
+    ///============ Prepare
     /**
-     * Возвращает функции для обёртки контента
+     * Возвращает функции для обёртки контента при экспорте Mustache
      * @param {string} maxWidth - максимальная ширина контейнера => 100px
      * @returns {{ headTags, container, endTags }}
      */
@@ -69,23 +75,98 @@ export class MustacheGenerator {
     initMustache(maxWidth) {
         this.templateParts = this.preGenerateTemplateParts(maxWidth);
     }
+
+    //============ Checkers
+    /**
+     * Возвращает результат проверки существования стиля элемента
+     * @returns {boolean}
+     */
+    isStyleGroupExists() {
+        let isExist = this.stylesKeys.some(
+            (style) => style === this.styleGroupName
+        );
+        if (isExist) {
+            return isExist;
+        } else {
+            throw new Error("Указанная группа стилей не найдена");
+        }
+    }
+    /**
+     * Возвращает результат проверки наличия класса в локальном списке классов
+     * @param {*} className - имя класса
+     * @returns {boolean}
+     */
+    isStyleExists(className) {
+        return this.classes.some((style) => style.class == className);
+    }
+    /**
+     * Возвращает результат проверки наличия свойства style у html тега.
+     * @returns {boolean}
+     */
+    isStylePropExist() {
+        let reg = this.getStyleRegExp("add");
+        let result = this.html.search(reg);
+        return result > -1;
+    }
+    /**
+     * Возвращает результат проверки, является ли элемент зоной.
+     * @param {object} elem - элемент
+     * @param {string} elem.name - название элемента
+     * @returns {boolean}
+     */
+    isElemTypeZone(elem) {
+        try {
+            return elem.name === "dropZone";
+        } catch (e) {
+            throw (
+                new Error("Не удалось проверить тип добавляемого элемента. ") +
+                e
+            );
+        }
+    }
+    /**
+     * Возвращает результат проверки наличия элемента в существующем списке элементов
+     * @param {string} elemName - название элемента
+     * @returns {boolean}
+     */
+    isElemExists(elemName) {
+        let isExist = this.elKeys.some((el) => el == elemName);
+        if (!isExist) {
+            throw new Error("Указанный элемент не существует");
+        }
+        return isExist;
+    }
+
+    //============ Getters
+
+    /**
+     * Возвращает объект элемента, найденный по названию элемента в существующем списке элементов
+     * @param {string} elemName - название элемента
+     * @returns {{html, style}}
+     */
+    getElemByName(elemName) {
+        try {
+            this.isElemExists(elemName);
+        } catch (e) {
+            throw new Error("Ошибка при получении элемента: ") + e;
+        }
+        return this.elems[elemName];
+    }
     /**
      * Возвращает список классов для элемента по названию группы стилей
-     * @param {string} styleGroupName - название группы классов
-     * @returns
+     * @returns {Array}
      */
-     getStyleGroupByName(styleGroupName) {
+    getStyleGroupByName() {
         let classes = [];
 
         try {
-            this.isStyleExist(styleGroupName);
+            this.isStyleGroupExists();
         } catch (e) {
-            throw e;
+            throw new Error("Ошибка при получении группы стилей") + e;
         }
 
         try {
-            console.log(this.styles[styleGroupName].styleCode);
-            this.styles[styleGroupName].styleCode.forEach((prop) => {
+            this.styles[this.styleGroupName].styleCode.forEach((prop) => {
                 let existingClass = classes.find((c) => c === prop.class);
                 if (!existingClass) {
                     classes.push({ class: prop.class, rules: prop.rules });
@@ -94,160 +175,254 @@ export class MustacheGenerator {
                 }
             });
         } catch (e) {
-            throw e;
+            throw new Error("Ошибка при переборе стилей") + e;
         }
         return classes;
     }
-
-    // transformClassToStyles(html, elems) {
-    //     for (let elem of elems) {
-    //         let cycle = true;
-    //         while (cycle) {
-    //             try {
-    //                 elem.class = elem.class.replace(".", "");
-    //             } catch (e) {
-    //                 throw e;
-    //             }
-
-    //             let insertedVar = `class=[/'"]${elem.class}[/'"]`;
-    //             let reg = new RegExp(insertedVar, "g");
-    //             let find = html.search(reg);
-    //             if (find > -1) {
-    //                 html = html.replace(reg, `style='${elem.rules}'`);
-    //             } else {
-    //                 cycle = false;
-    //             }
-    //         }
-    //     }
-    //     return html;
-    // }
-
-    // Elem должен быть строкой - это один из импортируемого списка элементов.
-
-    isStyleExist(styleName) {
-        let isExist = this.stylesKeys.some((s) => s === styleName);
-        if (isExist) {
-            return isExist;
+    /**
+     * Возвращает регулярное выражение для поиска style="... или ...>
+     * @param {string} type - 'add' | 'insert'
+     * @returns {RegExp}
+     */
+    getStyleRegExp(type) {
+        if (type == "add") {
+            return new RegExp("style=['\"]?w*['\"]?", "gm");
+        } else if (type == "insert") {
+            return new RegExp("[>]+", "gm");
         } else {
-            throw new Error("Указанный стиль не найден");
+            throw new Error("Указанный тип не найден");
+        }
+    }
+    /**
+     * Возвращает index символа в html, найденный по регулярному выражению
+     * @param {RegExp} regExp
+     * @returns {Number}
+     */
+    getStylePastePos(regExp) {
+        let index = this.html.search(regExp);
+        if (index < 0) {
+            throw new Error("Позиция для вставки не найдена");
+        }
+        return index;
+    }
+    /**
+     * Возвращает зону из локального списка зон
+     * @param {string} zoneId - номер зоны
+     * @returns {object}
+     */
+    getZone(zoneId) {
+        let zone;
+        try {
+            zone = this.zones.find((z) => z.id == zoneId);
+        } catch (e) {
+            throw new Error("Не удалось найти зону. ") + e;
+        }
+        return zone;
+    }
+
+    //============ Add
+
+    /**
+     * Добавляет в локальный список классов новые классы. Игнорирует повторы
+     */
+    pushNewStyles() {
+        for (let styleItem of this.tempStyleGroup) {
+            if (!this.isStyleExists(styleItem.class)) {
+                this.classes.push(styleItem);
+            }
+        }
+    }
+    /**
+     * Добавляет элемент в локальную зону
+     * @param {string} zoneId - номер зоны
+     * @param {string} elemId - id элемента
+     */
+    addElemToZone(zoneId, elemId) {
+        let zone;
+        try {
+            zone = this.getZone(zoneId);
+        } catch (e) {
+            throw new Error("Ошибка при проверке списка зон: ") + e;
+        }
+        try {
+            zone.items.push({ id: elemId, html: this.html });
+        } catch (e) {
+            throw new Error("Ошибка при добавлении элементов в зону: ") + e;
         }
     }
 
+    //============ Zone Push
+
+    /**
+     * Добавляет зону в локальный список зон
+     */
+    pushZoneToZones() {
+        this.zones.push({
+            id: this.zones.length + 1,
+            zone: `<div id='zone${this.zones.length + 1}' class='zone'>`,
+            closeZone: "</div>",
+            items: [],
+        });
+    }
+    /**
+     * Добавляет класс зоны в список классов
+     * @param {object} zone
+     * @param {object} zone.height - высона зоны
+     * @param {object} zone.y - координата
+     */
+    pushZoneClass(zone) {
+        if (!this.isStyleExists(".zone")) {
+            this.classes.push({
+                class: ".zone",
+                rules: `width: 100%; height: ${zone.height}px; position: relative; top: ${zone.y}px`,
+            });
+        }
+    }
+
+    //============ Wrappers
+
+    /**
+     * Возвращает html с обновленным свойством style
+     * @param {Number} boundIndex
+     * @param {String} styleStr
+     * @returns {string}
+     */
+    wrapStylePaste(boundIndex, styleStr) {
+        try {
+            return (
+                this.html.slice(0, boundIndex) +
+                styleStr +
+                this.html.slice(boundIndex)
+            );
+        } catch (e) {
+            throw new Error("Не удалось обернуть стиль.");
+        }
+    }
+
+    //============ String transform
+
+    /**
+     * Вставляет координаты и размеры элемента в его html код
+     * @param {object} prop - объект значений
+     * @param {object} prop.size - размеры
+     * @param {number} prop.size.w - ширина
+     * @param {number} prop.size.h - высота
+     * @param {object} prop.pos - позиция
+     * @param {number} prop.pos.x - координата
+     * @param {number} prop.pos.y - координата
+     */
+    insertStyleProperties(prop) {
+        const size = prop.size;
+        const pos = prop.pos;
+        let pasteStr = `width: ${size.w}px; height: ${size.h}px; position: absolute; top: ${pos.y}px; left: ${pos.x}px; `;
+        try {
+            if (this.isStylePropExist()) {
+                const reg = this.getStyleRegExp("add");
+                const index = this.getStylePastePos(reg);
+                this.html = this.wrapStylePaste(index, pasteStr);
+            } else {
+                const reg = this.getStyleRegExp("insert");
+                const index = this.getStylePastePos(reg);
+                this.html = this.wrapStylePaste(index, ` style='${pasteStr}'`);
+            }
+        } catch (e) {
+            throw new Error("Ошибка при вставке свойства: ") + e;
+        }
+    }
+
+    //============ Actions
+
+    /**
+     * Извлекает данные из элемента на базе его имени, формируя html и styleGroupName
+     * @param {object} elem - элемент
+     * @param {string} elem.name - название элемента
+     */
+    extractElemData(elem) {
+        try {
+            //**** Может быть ошибка. раньше переменные здесь же и объявлялись через деструкцию
+            ({ htmlCode: this.html, style: this.styleGroupName } =
+                this.getElemByName(elem.name));
+            this.tempStyleGroup = this.getStyleGroupByName();
+        } catch (e) {
+            throw e;
+        }
+    }
+
+    /**
+     * Очищает временные хрнилища
+     */
     clearTempData() {
         this.tempStyleGroup = [];
+        this.html = "";
+        this.styleGroupName = "";
     }
 
+    //============ Main Func
+
     /**
-     * Добавляет в массив класса новый элемент
-     * @param {*} zone - номер зоны, в которой размещается элемент
-     * @param {string} elem - название элемента
+     * Добавляет новый элемент для генерации mustache
+     * @param {string} zoneId - номер зоны, в которой размещается элемент
+     * @param {object} elem - название элемента
+     * @param {string} elem.id - id элемента
+     * @param {string} elem.name - название элемента
+     * @param {object} elem.size - размеры
+     * @param {number} elem.size.w - ширина
+     * @param {number} elem.size.h - высота
+     * @param {object} elem.pos - позиция
+     * @param {number} elem.pos.x - координата
+     * @param {number} elem.pos.y - координата
      */
-    add(zone, elem) {
-        if (elem !== "dropZone") {
-            if (this.elKeys.some((el) => el == elem.name)) {
-                let { htmlCode, style } = this.elems[elem.name];
-                let styles = style;
-                try {
-                    this.tempStyleGroup = this.getStyleGroupByName(styles);
-                } catch (e) {
-                    console.error("Ошибка при получении стилей: ", e);
-                }
-
-                for (let styleClass of this.tempStyleGroup) {
-                    if (
-                        !this.classes.some(
-                            (style) => style.class == styleClass.class
-                        )
-                    ) {
-                        this.classes.push(styleClass);
-                    }
-                }
-
-                function isStylePropExist(html) {
-                    let reg = new RegExp("style=['\"]?w*['\"]?", "gm");
-                    let result = html.search(reg);
-                    return result > -1;
-                }
-
-                function addSizeToStyle(html, sizeObj) {
-                    let reg = new RegExp("style=['\"]?w*['\"]?", "gm");
-                    let addIndex = html.search(reg) + 7;
-                    return (
-                        html.slice(0, addIndex) +
-                        `width: ${sizeObj.w}px; height: ${sizeObj.h}px; ` +
-                        html.slice(addIndex)
-                    );
-                }
-
-                function addPosToStyle(html, posObj) {
-                    let reg = new RegExp("style=['\"]?w*['\"]?", "gm");
-                    let addIndex = html.search(reg) + 7;
-                    return (
-                        html.slice(0, addIndex) +
-                        `position: relative; top: ${posObj.y}px; left: ${posObj.x}px; ` +
-                        html.slice(addIndex)
-                    );
-                }
-
-                function insertSizeToStyle(html, sizeObj) {
-                    let reg = new RegExp("[>]+", "gm");
-                    let insertIndex = html.search(reg);
-                    return (
-                        html.slice(0, insertIndex) +
-                        ` style='width: ${sizeObj.w}px; height: ${sizeObj.h}px;'` +
-                        html.slice(insertIndex)
-                    );
-                }
-
-                function insertPosToStyle(html, posObj) {
-                    let reg = new RegExp("[>]+", "gm");
-                    let insertIndex = html.search(reg);
-                    // Мб не relative, можно попробовать присвоить контейнеру relative
-                    return (
-                        html.slice(0, insertIndex) +
-                        ` style='position: relative; top: ${posObj.y}px; left: ${posObj.x}px;'` +
-                        html.slice(insertIndex)
-                    );
-                }
-
-                if (isStylePropExist(htmlCode)) {
-                    htmlCode = addSizeToStyle(htmlCode, elem.size);
-                } else {
-                    htmlCode = insertSizeToStyle(htmlCode, elem.size);
-                }
-                if (isStylePropExist(htmlCode)) {
-                    htmlCode = addPosToStyle(htmlCode, elem.pos);
-                } else {
-                    htmlCode = insertPosToStyle(htmlCode, elem.pos);
-                }
-
-                let curZone = this.zones.find((z) => z.id == zone);
-                // curZone.items.push(htmlCode);
-                curZone.items.push({ id: elem.id, html: htmlCode });
-            } else {
-                throw new Error("Элемент не найден в списке размещенных");
-            }
-        } else {
-            this.zones.push({
-                id: this.zones.length + 1,
-                zone: `<div id='zone${this.zones.length + 1}' class='zone'>`,
-                closeZone: "</div>",
-                items: [],
-            });
-
-                if (!this.classes.some((style) => style.class == ".zone")) {
-                    this.classes.push({
-                        class: ".zone",
-                        rules: `width: 100%; height: ${zone.height}px; position: relative; top: ${zone.y}px`,
-                    }); //**** сделать такой же как с обычным элементом insert pos и size
-                }
+    add(zoneId, elem) {
+        try {
+            this.extractElemData(elem);
+        } catch (e) {
+            throw e;
         }
-        
+
+        try {
+            this.pushNewStyles();
+        } catch (e) {
+            throw new Error("Ошибка при добавлении новых стилей: ") + e;
+        }
+
+        try {
+            this.insertStyleProperties({
+                size: elem.size,
+                pos: elem.pos,
+            });
+        } catch (e) {
+            throw e;
+        }
+
+        try {
+            this.addElemToZone(zoneId, elem.id);
+        } catch (e) {
+            throw (
+                new Error("Ошибка при добавлении элементов в локальную зону") +
+                e
+            );
+        }
+
         this.clearTempData();
     }
+
+    /**
+     * Регистрирует новую зону
+     * @param {object} zone
+     * @param {object} zone.height - высона зоны
+     * @param {object} zone.y - координата
+     */
+    addZone(zone) {
+        this.pushZoneToZones();
+        this.pushZoneClass(zone);
+    }
+
+    //============ Export Mustache
+
+    //=== Wrappers
     /**
      * Возвращает обёрнутое в объект значение
-     * @param {*} key - ключ объекта
+     * @param {string} key - ключ объекта
      * @param {*} value - значение
      * @returns {{ [key]: value }}
      */
@@ -281,18 +456,25 @@ export class MustacheGenerator {
 
         return result;
     }
+
+    //=== Getters
     /**
      * Возвращает массив зон
      * @returns {Array}
      */
     async getZonesInArray() {
         let zones = [];
-        for (let zone of this.zones) {
-            let transformedZone = zone.zone;
-            zone.items.forEach((child) => (transformedZone += child.html));
-            transformedZone += zone.closeZone;
-            zones.push(transformedZone);
+        try {
+            for (let zone of this.zones) {
+                let transformedZone = zone.zone;
+                zone.items.forEach((child) => (transformedZone += child.html));
+                transformedZone += zone.closeZone;
+                zones.push(transformedZone);
+            }
+        } catch (e) {
+            throw new Error("Не удалось сформировать массив зон. ") + e;
         }
+
         return zones;
     }
     /**
@@ -301,11 +483,18 @@ export class MustacheGenerator {
      */
     async getClassesInArray() {
         let classes = [];
-        for (let classRule of this.classes) {
-            classes.push(`${classRule.class} {${classRule.rules}} `);
+        try {
+            for (let classRule of this.classes) {
+                classes.push(`${classRule.class} {${classRule.rules}} `);
+            }
+        } catch (e) {
+            throw new Error("Не удалось сформировать массив классов. ") + e;
         }
+
         return classes;
     }
+
+    //=== Main Func
     /**
      * Возвращает данные для наполнения шаблона Mustache.js
      * @returns
@@ -319,20 +508,31 @@ export class MustacheGenerator {
             endTags: [],
         };
 
-        compiledTemplate.headTags = await this.wrapContent(
-            this.templateParts.headTags,
-            await this.getClassesInArray()
-        );
+        try {
+            compiledTemplate.headTags = await this.wrapContent(
+                this.templateParts.headTags,
+                await this.getClassesInArray()
+            );
+        } catch (e) {
+            throw new Error("Ошибка при получении headTags") + e;
+        }
 
-        compiledTemplate.container = await this.wrapContent(
-            this.templateParts.container,
-            await this.getZonesInArray()
-        );
+        try {
+            compiledTemplate.container = await this.wrapContent(
+                this.templateParts.container,
+                await this.getZonesInArray()
+            );
+        } catch (e) {
+            throw new Error("Ошибка при получении container") + e;
+        }
 
-        compiledTemplate.endTags.push(
-            this.wrapToObj("tag", this.templateParts.endTags("close"))
-        );
-
+        try {
+            compiledTemplate.endTags.push(
+                this.wrapToObj("tag", this.templateParts.endTags("close"))
+            );
+        } catch (e) {
+            throw new Error("Ошибка при получении endTags") + e;
+        }
         return compiledTemplate;
     }
 }
@@ -342,7 +542,7 @@ export class MustacheGenerator {
     "zones": [
         {
             "id": 1,
-            "zone": "<div id='zone1' class='zone'>", // Тут должена быть уникализация класса или как-то инчае посмотреть как задавать высоту зонам
+            "zone": "<div id='zone1' class='zone'>", //**** Тут должена быть уникализация класса или как-то инчае посмотреть как задавать высоту зонам
             "closeZone": "</div>", 
             "items": [
                 "<div class='dragText'><span>Some text</span></div>",
@@ -368,7 +568,7 @@ export class MustacheGenerator {
     }
 }
 */
-let template = {
+let viewJson = {
     // Template должен генерироваться по шаблону объекта здесь представленного, и наполняться в соответствии с выбранным языком(/разметки)
     headTags: [
         { tag: "<html lang='en'>" },
@@ -390,7 +590,7 @@ let template = {
     endTags: [{ tag: "</html>" }],
 };
 
-/*
+/* Mustache template
 {{#headTags}}
 {{{tag}}}
 {{/headTags}}

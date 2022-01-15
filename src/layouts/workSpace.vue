@@ -82,7 +82,7 @@ export default {
       electron.ipcRenderer.send("service", {
         action: "addMustache",
         zone: lastZone,
-        elem: "dropZone",
+        elem: {name: "dropZone"},
       });
     },
   },
