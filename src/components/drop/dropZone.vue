@@ -1,10 +1,10 @@
 <template>
   <div
-    :style="`height: ${size.h}px;`"
-    :id="'zone' + id"
-    class="dropZone"
-    @drop.capture.self.prevent="initDrop($event)"
-    @dragover.prevent
+      :style="`height: ${size.h}px;`"
+      :id="'zone' + id"
+      class="dropZone"
+      @drop.capture.self.prevent="initDrop($event)"
+      @dragover.prevent
   >
     <!--    <div class="test" style="width: 40px; height: 40px; position: relative; left: 20px; top:50px; background: greenyellow"></div>-->
   </div>
@@ -19,14 +19,17 @@ import resizableContainer from "@/components/drop/resizableContainer";
 
 export default {
   name: "dropZone",
-  components: { resizableContainer },
+  components: {resizableContainer},
   props: ["id", "size"],
   data() {
     return {
       // Drag
       dragged: {},
 
-      pastePos: { x: 0, y: 0 },
+      pastePos: {x: 0, y: 0},
+
+      // Drop
+      dataTransfer: {},
 
       // Create Elem
       elemId: "",
@@ -84,53 +87,54 @@ export default {
      * Получить dataTransfer
      * @returns {Object}
      */
-    getTransferData() {
+    getDataTransfer() {
       let data = this.currentDataTransfer;
       let keys = Object.keys(data);
       for (let key of keys) {
         if (key === undefined) {
           throw new Error("key === undefined");
-          return;
         }
       }
+
+      this.$store.commit("clearDataTransfer");
       return data;
     },
-    /**
-     * Возвращает максимальный, соответствующий title, elemId+1
-     * @returns {Number}
-     */
-    getElementId() {
-      let sameTitle = [];
+
+    getSameTitles(titleList) {
+      let sameTitles = [];
       try {
-        let children = this.getAllElements();
-        for (let child of children) {
+        for (let child of titleList) {
           if (child.title === this.title) {
-            sameTitle.push(parseInt(child.id.replace(this.title, "")));
+            sameTitles.push(parseInt(child.id.replace(this.title, "")));
           }
         }
       } catch (e) {
-        throw new Error("Ошибка при получении id элемента: ") + e;
-        return;
+        throw 'Не удалось получить список одинаковых title' + e;
       }
 
-      return Math.max(...sameTitle) < 1 ? 1 : Math.max(...sameTitle) + 1;
+      return sameTitles;
     },
+
     /**
      * Возвращает размеры и координаты всех дочерних элементов dropZone в виде массива
      * @returns {*[]}
      */
     getZoneElements(zone) {
-      const children = zone.childNodes;
       let properties = [];
-      for (let child of children) {
-        properties.push({
-          title: child.title,
-          id: child.id,
-          w: child.style.width,
-          h: child.style.height,
-          y: child.style.top,
-          x: child.style.left,
-        });
+      try {
+        const children = zone.childNodes;
+        for (let child of children) {
+          properties.push({
+            title: child.title,
+            id: child.id,
+            w: child.style.width,
+            h: child.style.height,
+            y: child.style.top,
+            x: child.style.left,
+          });
+        }
+      } catch (e) {
+        throw 'Не удалось получить элементы зоны. ' + e;
       }
       return properties;
     },
@@ -139,92 +143,56 @@ export default {
      * @returns {*[]}
      */
     getAllElements() {
-      const zones = this.$el.parentNode.childNodes;
       let properties = [];
-      for (let zone of zones) {
-        properties.push(...this.getZoneElements(zone));
+      try {
+        const zones = this.$el.parentNode.childNodes;
+        for (let zone of zones) {
+          properties.push(...this.getZoneElements(zone));
+        }
+      } catch (e) {
+        throw new Error('Не удалось получить все элементы зон. ') + e
       }
       return properties;
+    },
+
+    /**
+     * Возвращает максимальный, соответствующий title, elemId+1
+     * @returns {Number}
+     */
+    getElementId() {
+      let sameTitles = [];
+      try {
+        let allElements = this.getAllElements();
+        sameTitles = this.getSameTitles(allElements)
+      } catch (e) {
+        throw "Не удалось получить id элемента. " + e;
+      }
+
+      try {
+        this.elemId = Math.max(...sameTitles) < 1 ? 1 : Math.max(...sameTitles) + 1;
+      } catch (e) {
+        throw 'Не удалось определить верный id элемента. ' + e;
+      }
+
     },
 
     // Insert methods
     /**
      * Возвращает позицию первого символа после искомого слова в строке или перед '>';
      * @param {String} where - где искать
-     * @param {String} which - что искать
+     * @param {String} str - что искать
      * @returns {Number | undefined}
      */
-    searchInHtmlByStr(where, which) {
+    searchInHtmlByStr(where, str) {
       let startCharAt = 0;
-      if (where.search(which) >= 0) {
-        startCharAt = where.search(which) + which.length + 1;
+      if (where.search(str) >= 0) {
+        startCharAt = where.search(str) + str.length + 1;
       } else if (where.search(">") >= 0) {
         startCharAt = where.search(">");
       } else {
         return undefined;
       }
       return startCharAt;
-    },
-    /**
-     * Возвращает преобразованную строку, добавляя указанный атрибут title
-     * @param {String} htmlCode - <div title="">...</div>
-     * @param {String} titleName - название title
-     * @param {number} id - номер id
-     * @returns {String | Error}
-     */
-    insertId(htmlCode, titleName, id) {
-      let idCharAt = this.searchInHtmlByStr(htmlCode, " id=");
-      if (!idCharAt) {
-        throw new Error(
-          "Ошибка при поиске строки. Не найден закрывающий тег. searchInHtmlByStr"
-        );
-        return;
-      }
-      if (htmlCode[idCharAt] === ">") {
-        return (htmlCode =
-          htmlCode.slice(0, idCharAt) +
-          ' id="' +
-          titleName +
-          id +
-          '" ' +
-          htmlCode.slice(idCharAt));
-      } else {
-        return (htmlCode =
-          htmlCode.slice(0, idCharAt) +
-          titleName +
-          id +
-          " " +
-          htmlCode.slice(idCharAt));
-      }
-    },
-    /**
-     * Возвращает преобразованную строку, добавляя указанный атрибут title
-     * @param {String} htmlCode - <div title="">...</div>
-     * @param {String} titleName - название title
-     * @returns {String | Error}
-     */
-    insertAttr(htmlCode, titleName) {
-      let openTagCharAt = this.searchInHtmlByStr(htmlCode, " title=");
-      if (!openTagCharAt) {
-        throw new Error(
-          "Ошибка при поиске строки. Не найден закрывающий тег. searchInHtmlByStr"
-        );
-        return;
-      }
-      if (htmlCode[openTagCharAt] === ">") {
-        return (htmlCode =
-          htmlCode.slice(0, openTagCharAt) +
-          ' title="' +
-          titleName +
-          '" ' +
-          htmlCode.slice(openTagCharAt));
-      } else {
-        return (htmlCode =
-          htmlCode.slice(0, openTagCharAt) +
-          titleName +
-          " " +
-          htmlCode.slice(openTagCharAt));
-      }
     },
     /**
      * Возвращает результат проверки элемента на наличие не пустого значения.
@@ -238,7 +206,7 @@ export default {
       try {
         result = value == "" || value == [] || value == {};
       } catch (e) {
-        throw e;
+        throw 'Не удалось определить isEmpty. ' + e;
       }
       return result;
     },
@@ -251,7 +219,7 @@ export default {
           return defaultSize;
         }
       } catch (e) {
-        throw new Error("Не удалось вычислить размер элемента: ") + e;
+        throw new Error("Не удалось вычислить размер элемента. ") + e;
       }
     },
 
@@ -261,83 +229,120 @@ export default {
         this.minW = this.computeElemSize(sizeObj.minW, this.w);
         this.maxW = this.computeElemSize(sizeObj.maxW, "");
       } catch (e) {
-        throw new Error("Ошибка при получении ширины элемента: ") + e;
+        throw ("Не удалось получить ширину элемента. ") + e;
       }
       try {
         this.h = this.computeElemSize(sizeObj.h, defaultValue);
         this.minH = this.computeElemSize(sizeObj.minH, this.h);
         this.maxH = this.computeElemSize(sizeObj.maxH, "");
       } catch (e) {
-        throw new Error("Ошибка при получении высоты элемента: ") + e;
+        throw ("Не удалось получить высоту элемента. ") + e;
       }
     },
 
     // Create elem Methods
-    /**
-     * Преобразует передаваемые через transferData данные в форму для вставки.
-     * @param event
-     * @param transferData
-     */
-    insertTransformed(event, transferData) {
-      this.title = transferData.title;
-      this.html = transferData.html;
-      this.style = transferData.style;
-      this.defaultSize = transferData.defaultSize;
+
+    extractDataTransfer() {
+      try {
+        this.title = this.dataTransfer.title;
+        this.html = this.dataTransfer.html;
+        this.style = this.dataTransfer.style;
+        this.defaultSize = this.dataTransfer.defaultSize;
+      } catch (e) {
+        throw 'Не удалось извлечь данные. ' + e;
+      }
+    },
+
+    initElemPaste(evt) {
+      try {
+        if (
+            !this.checkPlaceFreedom(evt, false, this.$el, {
+              width: this.w,
+              height: this.h,
+              id: this.title + this.elemId,
+            })
+        ) {
+          this.pasteElem(evt);
+        } else {
+          return;
+        }
+      } catch (e) {
+        throw new Error('Ошибка при инициации вставки элемента: ') + e;
+      }
+    },
+
+    prepareToCompose() {
+      try {
+        this.extractDataTransfer();
+      } catch (e) {
+        throw new Error('Ошибка при извлечении данных dataTransfer: ') + (e);
+      }
 
       // Define elem sizes
       try {
         this.defineElemSizeOnDrop(this.defaultSize, 20);
       } catch (e) {
-        console.error(e);
-        return;
+        throw new Error('Ошибка при определении размеров элемента: ') + (e);
       }
-
-      //========= Prepare
 
       // Get id
       try {
-        this.elemId = this.getElementId();
+        this.getElementId();
       } catch (e) {
-        console.error(e);
-        return;
+        throw new Error('Ошибка при получении id элемента: ') + (e);
+      }
+    },
+    
+    endCompose() {
+      // Setting Attributes
+      try {
+        this.setAttr();
+      } catch (e) {
+        throw new Error("Ошибка при установке аттрибутов: ") + e;
       }
 
-      // Init
+      // load Classes
       try {
-        if (
-          !this.checkPlaceFreedom(event, false, this.$el, {
-            width: this.w,
-            height: this.h,
-            id: this.title + this.elemId,
-          })
-        ) {
-          this.initElement(event);
-        } else {
-          return;
-        }
+        this.loadRulesForElem();
+      } catch (e) {
+        throw new Error("Ошибка при загрузке стилей: ") + e;
+      }
+
+      try {
+        this.markAsDraggable();
+      } catch (e) {
+        throw new Error('Ошибка при размещении событий: ')+(e);
+      }
+    },
+
+    /**
+     * Преобразует передаваемые через dataTransfer данные в форму для вставки.
+     * @param event
+     * @param dataTransfer
+     */
+    insertComposed(event) {
+      //========= Prepare Compose
+      try {
+        this.prepareToCompose();
+      } catch (e) {
+        console.error('Ошибка при подготовке элемента: ', e);
+      }
+
+      // Init Paste
+      try {
+        this.initElemPaste(event);
       } catch (e) {
         console.error("Ошибка во время инициализации элемента: ", e);
         return;
       }
 
-      // Setting Attributes
+      //========= End Compose
       try {
-        this.setAttr();
+        this.endCompose();
       } catch (e) {
-        console.error("Ошибка при установке аттрибутов: ", e);
-        return;
+        console.error('Ошибка при завершении вставки сформированного элемента: ', e);
       }
 
-      // load Classes
-      try {
-        this.loadRulesForClass();
-      } catch (e) {
-        console.error("Ошибка при загрузке стилей: ", e);
-        return;
-      }
-
-      this.initDraggable();
-      
       electron.ipcRenderer.send("service", {
         action: "addMustache",
         zone: this.$el.id.replace("zone", ""),
@@ -352,17 +357,27 @@ export default {
         },
       });
     },
-    /**
-     * Инициализация и рендер элемента в dropZone
-     * @param event
-     */
-    initElement(event) {
-      let completeElem;
-      let replaceMe = document.createElement("div");
-      replaceMe.className = "replaceMe";
-      this.$el.appendChild(replaceMe);
+
+    createReplacingElem() {
       try {
-        const resizeInstance = Vue.extend(resizableContainer);
+        let replaceMe = document.createElement("div");
+        replaceMe.className = "replaceMe";
+        this.$el.appendChild(replaceMe);
+      } catch (e) {
+        throw 'createReplacingElem. Не удалось разместить элемент для замены. ' + e;
+      }
+    },
+    createResizeInstance() {
+      let compiledHTML;
+      let completeElem;
+      let resizeInstance;
+      try {
+        resizeInstance = Vue.extend(resizableContainer);
+      } catch (e) {
+        throw 'Не удалось создать экземпляр instance resizableContainer. ' + e;
+      }
+
+      try {
         completeElem = new resizeInstance({
           propsData: {
             pos: this.pastePos,
@@ -377,13 +392,44 @@ export default {
           },
           store,
         });
+      } catch (e) {
+        throw 'Не удалось задать параметры для instance resizableContainer. ' + e;
+      }
 
-        let compiledHTML = Vue.compile(this.html);
+      try {
+        compiledHTML = Vue.compile(this.html);
+      } catch (e) {
+        throw 'Не удалось скомпилировать html. ' + e;
+      }
 
+      try {
         completeElem.$slots.innerNode = [
           completeElem.$createElement(compiledHTML),
         ];
+      } catch (e) {
+        throw 'Не удалось разместить слот в instance resizableContainer. ' + e;
+      }
+
+      try {
         completeElem.$mount(".replaceMe");
+      } catch (e) {
+        throw 'Не удалось установить скомпилированный instance на заменяемом элементе. ' + e;
+      }
+
+    },
+    /**
+     * Вставка и рендер элемента в dropZone
+     * @param event
+     */
+    pasteElem(event) {
+      try {
+        this.createReplacingElem();
+      } catch (e) {
+        throw e
+      }
+
+      try {
+        this.createResizeInstance();
       } catch (e) {
         throw e;
       }
@@ -394,82 +440,147 @@ export default {
      * Вешает drag ивенты на созданный элемент
      * @param id
      */
-    initDraggable(id) {
-      if (!id) {
-        const lastChild = this.$el.lastChild;
-        lastChild.addEventListener("dragstart", this.dragCheck, true);
-        lastChild.addEventListener("dragend", this.dragEnd);
-      } else {
-        const elem = document.getElementById(id);
-        elem.addEventListener("dragstart", this.dragCheck, true);
-        elem.addEventListener("dragend", this.dragEnd);
-      }
-    },
-    /**
-     * Инициализировать drop элемента
-     * @param event
-     */
-    initDrop(event) {
-      let transferData;
+    markAsDraggable(id) {
       try {
-        transferData = this.getTransferData();
-        this.$store.commit("clearDataTransfer");
-        if (!transferData.prepare) {
-          if (!transferData.dragged) {
-            console.warn(
-              "Перетаскиваемый объект не является подходящим для вставки. initDrop"
-            );
-            return;
-          }
+        if (!id) {
+          const lastChild = this.$el.lastChild;
+          lastChild.addEventListener("dragstart", this.dragCheck, true);
+          lastChild.addEventListener("dragend", this.dragEnd);
+        } else {
+          const elem = document.getElementById(id);
+          elem.addEventListener("dragstart", this.dragCheck, true);
+          elem.addEventListener("dragend", this.dragEnd);
         }
       } catch (e) {
-        console.error("Ошибка во время получения данных transferData: ", e);
-        return;
+        throw 'Не удалось разместить drag event на созданный элемент. ' + e;
       }
-      if (transferData.prepare) {
-        this.insertTransformed(event, transferData);
-        this.updateEvent();
+
+    },
+
+    isElemValid(dataTransfer) {
+      if (!dataTransfer.prepare) {
+        if (!dataTransfer.dragged) {
+          return false;
+        } else {
+          return true;
+        }
       } else {
-        let elem = transferData.dragged;
+        return true;
+      }
+    },
 
-        if (!this.checkPlaceFreedom(event, elem, event.target, false)) {
-          if (!this.checkZone(event, elem)) {
-            this.changeZone(event, elem);
-          }
+    defineElemZone(evt, elem) {
+      if (!this.checkZone(evt, elem)) {
+        this.changeZone(evt, elem);
+      }
+    },
 
-          this.changePlace(event, elem);
-          this.updateEvent();
+    moveElem(evt, elem) {
+      try {
+        if (!this.checkPlaceFreedom(evt, elem, evt.target, false)) {
+          this.defineElemZone(evt, elem);
+          this.changePlace(evt, elem);
+        }
+      } catch (e) {
+        throw e;
+      }
+
+    },
+
+    defineDropWay(evt) {
+      if (this.dataTransfer.prepare) {
+        try {
+          this.insertComposed(evt);
+        } catch (e) {
+          throw 'Ошибка при размещении нового элемента: ' + e;
+        }
+      } else {
+        try {
+          let elem = this.dataTransfer.dragged;
+          this.moveElem(evt, elem);
+        } catch (e) {
+          throw 'Ошибка при перемещении элемента: ' + e;
         }
       }
     },
 
-    // Drag Methods
-    dragCheck(e) {
-      if (!e.target.classList.contains("resize__handler")) {
-        this.dragStart(e);
+    prepareDrop() {
+      try {
+        this.dataTransfer = this.getDataTransfer();
+      } catch (e) {
+        throw ("Не удалось получить данные dataTransfer: ") + e;
+      }
+      if (!this.isElemValid(this.dataTransfer)) {
+        throw ("Перетаскиваемый объект не является подходящим для вставки.");
       }
     },
-    dragStart(e) {
-      this.dragged = e.target;
+
+    /**
+     * Инициализировать drop элемента
+     * @param evt
+     */
+    initDrop(evt) {
+      try {
+        this.prepareDrop();
+      } catch (e) {
+        console.error('Ошибка при подготовке данных prepareDrop: ', e);
+        return;
+      }
+
+      try {
+        this.defineDropWay(evt);
+      } catch (e) {
+        console.error(e);
+        return;
+      }
+    },
+
+    setMetaDataTransfer(evt) {
       let w = parseInt(this.dragged.style.width) / 2;
       let h = parseInt(this.dragged.style.height) / 2;
 
-      e.dataTransfer.dropEffect = "move";
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("prepare", false);
+      evt.dataTransfer.dropEffect = "move";
+      evt.dataTransfer.effectAllowed = "move";
+      evt.dataTransfer.setData("prepare", false);
 
-      e.dataTransfer.setDragImage(e.target, w, h);
-
-      this.$store.commit("setDataTransfer", { dragged: this.dragged });
-      this.$store.commit("setShowState", {
-        name: "showElemBorders",
-        state: true,
-      });
+      evt.dataTransfer.setDragImage(evt.target, w, h);
     },
-    dragEnd(e) {
+
+    // Drag Methods
+    dragCheck(evt) {
+      if (!evt.target.classList.contains("resize__handler")) {
+        this.dragStart(evt);
+      }
+    },
+    dragStart(evt) {
+      this.dragged = evt.target;
+      this.setMetaDataTransfer(evt)
+      this.sendDataTransfer({dragged: this.dragged});
+      this.changeBordersVisible(true);
+    },
+    dragEnd(evt) {
+      this.changeBordersVisible(false);
+    },
+    /**
+     * Отправляет содержимое dataTransfer в хранилище vuex;
+     * @param {object} data - данные для отправки
+     */
+    sendDataTransfer(data) {
+      this.$store.commit("setDataTransfer", data);
+    },
+    /**
+     * Изменяет видимость границ элементов
+     * @param {boolean} visible
+     */
+    changeBordersVisible(visible) {
+      // if (visible) {
+      //   this.dragged.style.backgroundColor = "red";
+      // } else {
+      //   this.dragged.style.backgroundColor = "";
+      // }
       this.$store.commit("setShowState", {
         name: "showElemBorders",
-        state: false,
+        state: visible,
       });
     },
 
@@ -486,27 +597,30 @@ export default {
         style.innerHTML = `${className} {\n` + `${rules} }`;
         document.getElementsByTagName("head")[0].appendChild(style);
       } catch (e) {
-        throw new Error("Ошибка при создании класса: ") + e;
-        return;
+        throw new Error("Не удалось создать класс. ") + e;
+      }
+    },
+    isStyleApplied() {
+      try {
+        return !this.appliedStyles.some((style) => style === this.style)
+      } catch (e) {
+        throw 'Не удалось определить применен ли стиль. ' + e;
       }
     },
     /**
      * Загрузить в head стили для элемента
      */
-    loadRulesForClass() {
-      if (!this.appliedStyles.some((style) => style === this.style)) {
-        this.$store.commit("addApplied", this.style);
-
-        let classes = this.styles[this.style].styleCode;
-
-        try {
+    loadRulesForElem() {
+      try {
+        if (this.isStyleApplied()) {
+          let classes = this.styles[this.style].styleCode;
           for (let item of classes) {
             this.createClass(item.class, item.rules);
           }
-        } catch (e) {
-          console.error(e);
-          return;
+          this.$store.commit("addApplied", this.style);
         }
+      } catch (e) {
+        throw e;
       }
     },
     /**
@@ -518,7 +632,7 @@ export default {
         this.$el.lastChild.title = this.title;
         this.$el.lastChild.id = this.title + this.elemId;
       } else {
-        throw new Error("Один из передаваемых аргументов - undefined. ");
+        throw new Error("this.title || this.elemId === undefined. ");
       }
     },
 
@@ -530,12 +644,16 @@ export default {
      * @returns {boolean}
      */
     isCollide(a, b) {
-      return !(
-        a.y + a.h < b.y ||
-        a.y > b.y + b.h ||
-        a.x + a.w < b.x ||
-        a.x > b.x + b.w
-      );
+      try {
+        return !(
+            a.y + a.h < b.y ||
+            a.y > b.y + b.h ||
+            a.x + a.w < b.x ||
+            a.x > b.x + b.w
+        );
+      } catch (e) {
+        throw 'Не удалось определить isCollide. ' + e;
+      }
     },
     /**
      * Возвращает координаты, не нарушающие границы рабочей зоны
@@ -546,40 +664,35 @@ export default {
      * @returns {{x, y}}
      */
     checkBounds(x, y, w, h) {
-      let result = { x: x, y: y };
-      w = parseInt(w);
-      h = parseInt(h);
-      const bottom = y + h;
-      const top = y;
-      const left = x;
-      const right = x + w;
-      const zoneHeight = parseInt(this.$el.style.height);
-      const zoneWidth = parseInt(getComputedStyle(this.$el, false).width);
-      if (bottom > zoneHeight) {
-        result.y = zoneHeight - h;
+      try {
+        let result = {x: x, y: y};
+        w = parseInt(w);
+        h = parseInt(h);
+        const bottom = y + h;
+        const top = y;
+        const left = x;
+        const right = x + w;
+        const zoneHeight = parseInt(this.$el.style.height);
+        const zoneWidth = parseInt(getComputedStyle(this.$el, false).width);
+        if (bottom > zoneHeight) {
+          result.y = zoneHeight - h;
+        }
+        if (top < 0) {
+          result.y = 0;
+        }
+        if (left < 0) {
+          result.x = 0;
+        }
+        if (right > zoneWidth) {
+          result.x = zoneWidth - w;
+        }
+        return result;
+      } catch (e) {
+        throw 'checkBounds. Не удалось определить координаты. ' + e;
       }
-      if (top < 0) {
-        result.y = 0;
-      }
-      if (left < 0) {
-        result.x = 0;
-      }
-      if (right > zoneWidth) {
-        result.x = zoneWidth - w;
-      }
-      return result;
     },
-    /**
-     * Проверяет, свободно ли пространство для установки объекта и записывает координаты в this.pastePos
-     * @param event
-     * @param {Node | Boolean} elem
-     * @param {{width: number, id: string, height: number}} options - опциональный параметр.
-     * @param {Number} options.width - ширина
-     * @param {Number} options.height - высота
-     * @param {String} options.id - id элемента
-     * @returns {boolean}
-     */
-    checkPlaceFreedom(event, elem, zone, options) {
+
+    getElemSize(elem, options) {
       let w;
       let h;
       try {
@@ -591,48 +704,95 @@ export default {
           h = options.height;
         }
       } catch (e) {
-        throw new Error("Ошибка при получении ширины и высоты: ") + e;
+        throw 'Не удалось получит размеры элемента. ' + e;
       }
 
-      let bounds;
+      return {w, h};
+    },
+
+    getBounds(evt, size) {
       try {
-        let paste = this.getPastePosition(event, 5, w, h);
-        bounds = this.checkBounds(paste.x, paste.y, w, h);
+        let paste = this.getPastePosition(evt, 5, size.w, size.h);
+        return this.checkBounds(paste.x, paste.y, size.w, size.h);
       } catch (e) {
-        throw (
-          new Error("Ошибка при получении координат для вставки элемента: ") + e
-        );
-        return;
+        throw e;
       }
+    },
 
-      let checkElements;
+    getCheckingElems(elem, options, zone) {
       try {
         let elemId = elem.id || options.id;
-        checkElements = this.getZoneElements(zone).filter(
-          (child) => child.id !== elemId
+        return this.getZoneElements(zone).filter(
+            (child) => child.id !== elemId
         );
       } catch (e) {
+        throw e;
+      }
+    },
+
+    isPlaceFreedom(checkingElems, bounds, size) {
+      let result;
+      for (let check of checkingElems) {
+        let checkObj = {
+          w: parseInt(check.w),
+          h: parseInt(check.h),
+          y: parseInt(check.y),
+          x: parseInt(check.x),
+        };
+        try {
+          result = this.isCollide(
+              {w: size.w, h: size.h, y: bounds.y, x: bounds.x},
+              checkObj
+          );
+        } catch (e) {
+          throw e;
+        }
+
+        if (result) {
+          return result;
+        }
+      }
+    },
+
+    /**
+     * Проверяет, свободно ли пространство для установки объекта и записывает координаты в this.pastePos
+     * @param event
+     * @param {Node | Boolean} elem
+     * @param zone
+     * @param {{width: number, id: string, height: number}} options - опциональный параметр.
+     * @param {Number} options.width - ширина
+     * @param {Number} options.height - высота
+     * @param {String} options.id - id элемента
+     * @returns {boolean}
+     */
+    checkPlaceFreedom(evt, elem, zone, options) {
+      let w;
+      let h;
+      try { //****
+        ({w, h} = this.getElemSize(elem, options));
+      } catch (e) {
+        throw e;
+      }
+
+      let bounds = {};
+      try {
+        bounds = this.getBounds(evt, {w: w, h: h});
+      } catch (e) {
+        throw (
+            new Error("Ошибка при получении координат для вставки элемента: ") + e
+        );
+      }
+
+      let checkingElems = [];
+      try {
+        checkingElems = this.getCheckingElems(elem, options, zone)
+      } catch (e) {
         throw new Error("Ошибка при получении списка элементов зоны: ") + e;
-        return;
       }
 
       let result = false;
       try {
-        for (let check of checkElements) {
-          let checkObj = {
-            w: parseInt(check.w),
-            h: parseInt(check.h),
-            y: parseInt(check.y),
-            x: parseInt(check.x),
-          };
-          result = this.isCollide(
-            { w: w, h: h, y: bounds.y, x: bounds.x },
-            checkObj
-          );
-          if (result) {
-            return result;
-          }
-        }
+        result = this.isPlaceFreedom(checkingElems, bounds, {w: w, h: h});
       } catch (e) {
         throw new Error("Ошибка при расчете коллизии: ") + e;
       }
@@ -702,7 +862,8 @@ export default {
       }
     },
   },
-  mounted() {},
+  mounted() {
+  },
 };
 </script>
 
