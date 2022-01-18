@@ -318,14 +318,13 @@ export default {
     /**
      * Преобразует передаваемые через dataTransfer данные в форму для вставки.
      * @param event
-     * @param dataTransfer
      */
     insertComposed(event) {
       //========= Prepare Compose
       try {
         this.prepareToCompose();
       } catch (e) {
-        console.error('Ошибка при подготовке элемента: ', e);
+        console.error('Ошибка при подготовке элемента:', e);
       }
 
       // Init Paste
@@ -340,7 +339,7 @@ export default {
       try {
         this.endCompose();
       } catch (e) {
-        console.error('Ошибка при завершении вставки сформированного элемента: ', e);
+        console.error('Ошибка при завершении вставки сформированного элемента:', e);
       }
 
       electron.ipcRenderer.send("service", {
@@ -523,7 +522,7 @@ export default {
       try {
         this.prepareDrop();
       } catch (e) {
-        console.error('Ошибка при подготовке данных prepareDrop: ', e);
+        console.error('Ошибка при подготовке данных prepareDrop:', e);
         return;
       }
 

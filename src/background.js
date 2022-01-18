@@ -1,14 +1,14 @@
 "use strict";
 
-import { app, protocol, BrowserWindow } from "electron";
-import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
-import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
+import {app, protocol, BrowserWindow} from "electron";
+import {createProtocol} from "vue-cli-plugin-electron-builder/lib";
+import installExtension, {VUEJS_DEVTOOLS} from "electron-devtools-installer";
 import * as electron from "electron";
 import * as fs from "fs";
 
-import { FileManager } from "@/helpers/FileManager";
-import { MustacheGenerator } from "./helpers/MustacheGenerator";
-import { GraphDataGetter } from "./helpers/GraphDataGetter";
+import {FileManager} from "@/helpers/FileManager";
+import {MustacheGenerator} from "./helpers/MustacheGenerator";
+import {GraphDataGetter} from "./helpers/GraphDataGetter";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -16,7 +16,7 @@ let win;
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
-    { scheme: "app", privileges: { secure: true, standard: true } },
+    {scheme: "app", privileges: {secure: true, standard: true}},
 ]);
 
 electron.ipcMain.on("fileOperations", (event, arg) => {
@@ -47,7 +47,7 @@ let elements;
 let styles;
 let m;
 
-(async function (){
+(async function () {
     try {
         elements = await GraphDataGetter.getGraph("elements", "json", "{}");
         styles = await GraphDataGetter.getGraph("styles", "json", "{}");
@@ -57,7 +57,7 @@ let m;
     try {
         m = new MustacheGenerator(JSON.parse(elements), JSON.parse(styles));
     } catch (e) {
-        console.error('Ошибка при создании класса: MustacheGenerator. ', e);
+        console.error('Ошибка при создании класса: MustacheGenerator.', e);
     }
 })()
 
@@ -66,17 +66,17 @@ electron.ipcMain.handle("gett", async (event, arg) => {
         case "getElementsList":
             let elements;
             try {
-            elements = JSON.parse(elements);
+                elements = JSON.parse(elements);
             } catch (e) {
-                console.error('Ошибка при получении файла элементов: ', e);
+                console.error('Ошибка при получении файла элементов:', e);
             }
             return elements
         case "getStylesList":
             let styles;
             try {
-                 styles = JSON.parse(styles);
+                styles = JSON.parse(styles);
             } catch (e) {
-                console.error('Ошибка при получении файла стилей: ', e);
+                console.error('Ошибка при получении файла стилей:', e);
             }
             return styles
         case "getMustache":
@@ -150,22 +150,36 @@ app.on("ready", async () => {
                 break;
 
             case "addMustache":
-                try {   
+                try {
                     if (m.isElemTypeZone(arg.elem)) {
                         m.addZone(arg.zone);
                     } else {
                         m.add(arg.zone, arg.elem);
                     }
-                    
+
 
                 } catch (e) {
-                    console.error('addMustache: ', e);
+                    console.error('addMustache:', e);
                 }
 
                 break;
+            case "changeMustache":
+                try {
+                    m.changeElem(arg.zone, arg.elem, arg.style);
+                } catch (e) {
+                    console.error('changeMustache:', e);
+                }
+                break;
+            case "removeMustache":
+                try {
+                    m.removeMustache(arg.zone, arg.elem);
+                } catch (e) {
+                    console.error("removeMustache:", e);
+                }
+                break
         }
     });
-    
+
 });
 
 // Exit cleanly on request from parent process in development mode.

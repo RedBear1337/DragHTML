@@ -205,12 +205,18 @@ export class MustacheGenerator {
         }
         return index;
     }
+
+    
+
     /**
      * Возвращает зону из локального списка зон
      * @param {string} zoneId - номер зоны
      * @returns {object}
      */
     getZone(zoneId) {
+        if (zoneId.search('zone') > -1) {
+            throw new Error('Неверный формат передачи zoneId');
+        }
         let zone;
         try {
             zone = this.zones.find((z) => z.id == zoneId);
@@ -249,6 +255,34 @@ export class MustacheGenerator {
         } catch (e) {
             throw new Error("Ошибка при добавлении элементов в зону: ") + e;
         }
+    }
+
+    //============ Change
+
+    changeElem(zoneId, elem, style) {
+        let zone;
+        try {
+            zone = this.getZone(zoneId);
+        } catch (e) {
+            throw new Error("Ошибка при проверке списка зон: ") + e;
+        }
+        // html и id. html ранее наполнялся стилями с коордлинатами и размерами из resizableContainer
+        let mustacheElem = zone.items.find(item=>item.id === elem.id);
+        this.html = elem.html;
+
+        this.insertStyleProperties(style);
+
+        mustacheElem.html = this.html;
+    }
+
+    removeMustache(zoneId, elemId) {
+        let zone;
+        try {
+            zone = this.getZone(zoneId);
+        } catch (e) {
+            throw new Error("Ошибка при проверке списка зон: ") + e;
+        }
+        zone.items = zone.items.filter(item=>item.id !== elemId);
     }
 
     //============ Zone Push
@@ -339,7 +373,6 @@ export class MustacheGenerator {
      */
     extractElemData(elem) {
         try {
-            //**** Может быть ошибка. раньше переменные здесь же и объявлялись через деструкцию
             ({ htmlCode: this.html, style: this.styleGroupName } =
                 this.getElemByName(elem.name));
             this.tempStyleGroup = this.getStyleGroupByName();
@@ -349,7 +382,7 @@ export class MustacheGenerator {
     }
 
     /**
-     * Очищает временные хрнилища
+     * Очищает временные хранилища
      */
     clearTempData() {
         this.tempStyleGroup = [];

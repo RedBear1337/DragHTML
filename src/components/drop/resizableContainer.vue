@@ -1,6 +1,6 @@
 <template>
   <!-- :style="`width: ${this.size.w}; height: ${this.size.h}; min-width: ${this.minW}; min-height: ${this.minH}; max-width: ${this.maxW}; max-height: ${this.maxH}`"  -->
-  <div class="resize" @mousedown="showHandlers">
+  <div class="resize" @mousedown.right.capture="deselect({target: 'contextMenu'})" @mousedown.left="showHandlers">
     <div ref="handlers" class="resize__handlers">
       <div class="resize__handler tl"/>
       <div class="resize__handler tm"/>
