@@ -12,7 +12,7 @@ export class FileManager {
         try {
             isExist = fs.existsSync(fileName+"."+format);
         } catch (e) {
-            throw new Error('Ошибка во время записи файла');
+            throw new Error('Ошибка во время проверки существования файла');
         }
         
         return isExist;
@@ -36,7 +36,9 @@ export class FileManager {
             return
         }
         try {
-            if (!this.existingCheck(fileName, format)) return;
+            if (!this.existingCheck(fileName, format)) {
+                throw new Error('Не удалось записать файл');
+            }
         } catch (e) {
             throw e;
         }

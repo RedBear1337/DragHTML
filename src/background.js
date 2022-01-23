@@ -1,22 +1,27 @@
 "use strict";
 
-import {app, protocol, BrowserWindow} from "electron";
-import {createProtocol} from "vue-cli-plugin-electron-builder/lib";
-import installExtension, {VUEJS_DEVTOOLS} from "electron-devtools-installer";
+import { app, protocol, BrowserWindow } from "electron";
+import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
+import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 import * as electron from "electron";
 import * as fs from "fs";
 
-import {FileManager} from "@/helpers/FileManager";
-import {MustacheGenerator} from "./helpers/MustacheGenerator";
-import {GraphDataGetter} from "./helpers/GraphDataGetter";
+import { electronWindow } from "./helpers/electronWindow";
+import { FileManager } from "@/helpers/FileManager";
+import { MustacheGenerator } from "./helpers/MustacheGenerator";
+import { GraphDataGetter } from "./helpers/GraphDataGetter";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
-let win;
+let windowObj = {};
+
+let mmToPxRatio = 3.8;
+
+let eWindow;
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
-    {scheme: "app", privileges: {secure: true, standard: true}},
+    { scheme: "app", privileges: { secure: true, standard: true } },
 ]);
 
 electron.ipcMain.on("fileOperations", (event, arg) => {
@@ -32,13 +37,26 @@ electron.ipcMain.on("fileOperations", (event, arg) => {
     }
 });
 
-electron.ipcMain.on("window", (event, arg) => {
+electron.ipcMain.on("window", async (event, arg) => {
     switch (arg.action) {
         case "close-win":
-            win.destroy();
+            windowObj["mainWindow"].destroy();
             break;
         case "hide-win":
-            win.minimize();
+            windowObj["mainWindow"].minimize();
+            break;
+        case "change-width-win":
+            try {
+                let transformedWidth = await eWindow.transformWidthFormat(
+                    arg.width,
+                    arg.unit
+                );
+                await eWindow.changeWindowBounds(windowObj[arg.winName], {
+                    width: transformedWidth,
+                });
+            } catch (e) {
+                console.error(`Ошибка при изменении окна - ${arg.winName}:`, e);
+            }
             break;
     }
 });
@@ -52,14 +70,20 @@ let m;
         elements = await GraphDataGetter.getGraph("elements", "json", "{}");
         styles = await GraphDataGetter.getGraph("styles", "json", "{}");
     } catch (e) {
-        console.error('getGraph: ', e);
+        console.error("getGraph: ", e);
     }
     try {
         m = new MustacheGenerator(JSON.parse(elements), JSON.parse(styles));
     } catch (e) {
-        console.error('Ошибка при создании класса: MustacheGenerator.', e);
+        console.error("Ошибка при создании класса: MustacheGenerator.", e);
     }
-})()
+})();
+
+try {
+    eWindow = new electronWindow(mmToPxRatio);
+} catch (e) {
+    console.error("Ошибка при создании класса: electronWindow.", e);
+}
 
 electron.ipcMain.handle("gett", async (event, arg) => {
     switch (arg.action) {
@@ -68,17 +92,17 @@ electron.ipcMain.handle("gett", async (event, arg) => {
             try {
                 elements = JSON.parse(elements);
             } catch (e) {
-                console.error('Ошибка при получении файла элементов:', e);
+                console.error("Ошибка при получении файла элементов:", e);
             }
-            return elements
+            return elements;
         case "getStylesList":
             let styles;
             try {
                 styles = JSON.parse(styles);
             } catch (e) {
-                console.error('Ошибка при получении файла стилей:', e);
+                console.error("Ошибка при получении файла стилей:", e);
             }
-            return styles
+            return styles;
         case "getMustache":
             let mustache;
             try {
@@ -90,27 +114,16 @@ electron.ipcMain.handle("gett", async (event, arg) => {
     }
 });
 
-async function createWindow() {
-    // Create the browser window.
-    win = new BrowserWindow({
-        width: 802,
-        height: 600,
-        frame: false,
-        resizable: false,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
-        },
-    });
-
-    if (process.env.WEBPACK_DEV_SERVER_URL) {
-        // Load the url of the dev server if in development mode
-        await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL);
-        if (!process.env.IS_TEST) win.webContents.openDevTools();
-    } else {
-        createProtocol("app");
-        // Load the index.html when not in development
-        win.loadURL("app://./index.html");
+async function initElectron() {
+    try {
+        windowObj["mainWindow"] = await eWindow.createWindow();
+    } catch (e) {
+        throw new Error("Ошибка при создании окна: ") + e;
+    }
+    try {
+        await eWindow.loadRequiredWindowType(windowObj["mainWindow"]);
+    } catch (e) {
+        throw new Error("Ошибка при загрузке страницы: ") + e;
     }
 }
 
@@ -126,7 +139,7 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) initElectron();
 });
 
 // This method will be called when Electron has finished
@@ -141,7 +154,7 @@ app.on("ready", async () => {
             console.error("Vue Devtools failed to install:", e.toString());
         }
     }
-    createWindow();
+    await initElectron().catch((e) => console.error(e));
 
     electron.ipcMain.on("service", async (event, arg) => {
         switch (arg.action) {
@@ -156,10 +169,8 @@ app.on("ready", async () => {
                     } else {
                         m.add(arg.zone, arg.elem);
                     }
-
-
                 } catch (e) {
-                    console.error('addMustache:', e);
+                    console.error("addMustache:", e);
                 }
 
                 break;
@@ -167,7 +178,7 @@ app.on("ready", async () => {
                 try {
                     m.changeElem(arg.zone, arg.elem, arg.style);
                 } catch (e) {
-                    console.error('changeMustache:', e);
+                    console.error("changeMustache:", e);
                 }
                 break;
             case "removeMustache":
@@ -176,10 +187,9 @@ app.on("ready", async () => {
                 } catch (e) {
                     console.error("removeMustache:", e);
                 }
-                break
+                break;
         }
     });
-
 });
 
 // Exit cleanly on request from parent process in development mode.
