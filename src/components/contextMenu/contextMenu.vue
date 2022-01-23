@@ -1,6 +1,6 @@
 <template>
   <div id="contextMenu" class="context">
-    <contextMenuItem :name="action.name" v-for="action of actions" :key="action.id"
+    <contextMenuItem :text="action.name.text" v-for="action of actions" :key="action.id"
                      @action="doAction"/>
   </div>
 </template>
@@ -24,34 +24,48 @@ export default {
      * @param action - объект, содержащий команду, её название и список переменных, которые она будет использовать.
      * @param {string} action.name - название
      * @param {arrowFunc} action.func - стрелочная функция ()=>{...}
-     * @param {object} action.vars - переменные в формате {state: false, ...}
+     * @param {object} action.args - переменные в формате {state: false, ...}
      */
     actionGenerate(action) {
       this.actions.push(action);
     },
-    getAction(actionName) {
+    getAction(actionText) {
       try {
-        this.curAction = this.actions.find(action => action.name === actionName);
+        this.curAction = this.actions.find(action => action.name.text === actionText);
       } catch (e) {
         throw 'Не удалось получить action. ' + e;
       }
     },
 
+    callEmit() {
+      this.$emit('calledAction', this.curAction.name.title);
+    },
 
-    doAction(actionName) {
-      try {
-        this.getAction(actionName);
-      } catch (e) {
-        console.error('Ошибка при получении action:', e);
+    getArgs() {
+      let args = this.curAction.args;
+      if (!args) {
+        args = {};
       }
-      let vars = this.curAction.vars;
+      return args;
+    },
+
+    doAction(actionText) {
       try {
-        this.curAction.func(vars);
+        this.getAction(actionText);
+      } catch (e) {
+        console.error(new Error('Ошибка при получении action:'), e);
+      }
+      let args = this.getArgs();
+      try {
+        this.curAction.func(args);
       } catch (e) {
         console.error(new Error('Ошибка при выполнении action:'), e);
       }
 
-      this.$emit('calledAction', this.curAction.name);
+      // Если args.isWait = true, то функция должна сама вызывает emit, в зависимости от внутренних условий.
+      if (!args.isWait) {
+        this.callEmit();
+      }
     }
   },
   computed: {},
@@ -59,7 +73,7 @@ export default {
   mounted() {
     this.actionGenerate(
         {
-          name: 'print pussy to console',
+          name: {title: 'print', text: 'print pussy to console'},
           func: () => {
             console.log('=^._.^= ∫');
           }
@@ -67,20 +81,20 @@ export default {
     if (this.element !== '') {
       this.actionGenerate(
           {
-            name: 'switch content editable',
+            name: {title: 'edit', text: 'switch content editable'},
             /**
              * Переключает состояние редактирования текста у элемента
-             * @param {object} vars - список переменных
-             * @param {string} vars.log - сообщение для вывода в консоль
-             * @param {boolean} vars.state - состояние редактирования
+             * @param {object} args - список переменных
+             * @param {string} args.log - сообщение для вывода в консоль
+             * @param {boolean} args.state - состояние редактирования
              */
-            func: (vars) => {
+            func: (args) => {
 
               let changeEditState = () => {
                 try {
-                  console.log('=^._.^= ∫', `${vars.log} = ${vars.state}`);
-                  this.target.parent.contentEditable = vars.state;
-                  vars.state = !vars.state;
+                  console.log('=^._.^= ∫', `${args.log} = ${args.state}`);
+                  this.target.parent.contentEditable = args.state;
+                  args.state = !args.state;
                 } catch (e) {
                   throw 'Не удалось изменить состояние contentEditable. ' + e;
                 }
@@ -92,6 +106,8 @@ export default {
               const removeListeners = () => {
                 document.removeEventListener('keydown', saveWithEnter);
                 document.removeEventListener('click', deselect);
+
+                this.callEmit();
               }
 
               const addListeners = () => {
@@ -134,13 +150,13 @@ export default {
 
               addListeners();
             },
-            vars: {state: true, log: 'editable'}
+            args: {state: true, log: 'editable', isWait: true}
           }
       );
 
       this.actionGenerate(
           {
-            name: 'remove element',
+            name: {title: 'remove', text: 'remove element'},
             /**
              * Удаляет элемент из DOM дерева
              */

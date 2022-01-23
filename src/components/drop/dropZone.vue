@@ -30,6 +30,7 @@ export default {
 
       // Drop
       dataTransfer: {},
+      dropEvt: {},
 
       // Create Elem
       elemId: "",
@@ -46,23 +47,17 @@ export default {
   },
 
   methods: {
-    // Update
-    updateEvent() {
-      this.$emit("updateEvent", this.$el.id);
-    },
-
     // Get methods
     /**
      * Возвращает преобразованные координаты. Убирает дробь, округляет до нужной кратности, преобразует строку в число
-     * @param event
      * @param round - кратность округления.
      * @param {String | Number} width - ширина размещаемого объекта (не в %)
      * @param {String | Number} height - высота размещаемого объекта (не в %)
      * @returns {{x: number, y: number}}
      */
-    getPastePosition(event, round, width, height) {
-      let x = (this.x = event.offsetX);
-      let y = (this.y = event.offsetY);
+    getPastePosition(round, width, height) {
+      let x = (this.x = this.dropEvt.offsetX);
+      let y = (this.y = this.dropEvt.offsetY);
       let w = (this.w = width);
       let h = (this.h = height);
 
@@ -109,7 +104,7 @@ export default {
           }
         }
       } catch (e) {
-        throw 'Не удалось получить список одинаковых title' + e;
+        throw "Не удалось получить список одинаковых title" + e;
       }
 
       return sameTitles;
@@ -134,7 +129,7 @@ export default {
           });
         }
       } catch (e) {
-        throw 'Не удалось получить элементы зоны. ' + e;
+        throw "Не удалось получить элементы зоны. " + e;
       }
       return properties;
     },
@@ -150,7 +145,7 @@ export default {
           properties.push(...this.getZoneElements(zone));
         }
       } catch (e) {
-        throw new Error('Не удалось получить все элементы зон. ') + e
+        throw new Error("Не удалось получить все элементы зон. ") + e;
       }
       return properties;
     },
@@ -163,17 +158,17 @@ export default {
       let sameTitles = [];
       try {
         let allElements = this.getAllElements();
-        sameTitles = this.getSameTitles(allElements)
+        sameTitles = this.getSameTitles(allElements);
       } catch (e) {
         throw "Не удалось получить id элемента. " + e;
       }
 
       try {
-        this.elemId = Math.max(...sameTitles) < 1 ? 1 : Math.max(...sameTitles) + 1;
+        this.elemId =
+            Math.max(...sameTitles) < 1 ? 1 : Math.max(...sameTitles) + 1;
       } catch (e) {
-        throw 'Не удалось определить верный id элемента. ' + e;
+        throw "Не удалось определить верный id элемента. " + e;
       }
-
     },
 
     // Insert methods
@@ -206,7 +201,7 @@ export default {
       try {
         result = value == "" || value == [] || value == {};
       } catch (e) {
-        throw 'Не удалось определить isEmpty. ' + e;
+        throw "Не удалось определить isEmpty. " + e;
       }
       return result;
     },
@@ -229,14 +224,14 @@ export default {
         this.minW = this.computeElemSize(sizeObj.minW, this.w);
         this.maxW = this.computeElemSize(sizeObj.maxW, "");
       } catch (e) {
-        throw ("Не удалось получить ширину элемента. ") + e;
+        throw "Не удалось получить ширину элемента. " + e;
       }
       try {
         this.h = this.computeElemSize(sizeObj.h, defaultValue);
         this.minH = this.computeElemSize(sizeObj.minH, this.h);
         this.maxH = this.computeElemSize(sizeObj.maxH, "");
       } catch (e) {
-        throw ("Не удалось получить высоту элемента. ") + e;
+        throw "Не удалось получить высоту элемента. " + e;
       }
     },
 
@@ -249,25 +244,7 @@ export default {
         this.style = this.dataTransfer.style;
         this.defaultSize = this.dataTransfer.defaultSize;
       } catch (e) {
-        throw 'Не удалось извлечь данные. ' + e;
-      }
-    },
-
-    initElemPaste(evt) {
-      try {
-        if (
-            !this.checkPlaceFreedom(evt, false, this.$el, {
-              width: this.w,
-              height: this.h,
-              id: this.title + this.elemId,
-            })
-        ) {
-          this.pasteElem(evt);
-        } else {
-          return;
-        }
-      } catch (e) {
-        throw new Error('Ошибка при инициации вставки элемента: ') + e;
+        throw "Не удалось извлечь данные. " + e;
       }
     },
 
@@ -275,24 +252,24 @@ export default {
       try {
         this.extractDataTransfer();
       } catch (e) {
-        throw new Error('Ошибка при извлечении данных dataTransfer: ') + (e);
+        throw new Error("Ошибка при извлечении данных dataTransfer: ") + e;
       }
 
       // Define elem sizes
       try {
         this.defineElemSizeOnDrop(this.defaultSize, 20);
       } catch (e) {
-        throw new Error('Ошибка при определении размеров элемента: ') + (e);
+        throw new Error("Ошибка при определении размеров элемента: ") + e;
       }
 
       // Get id
       try {
         this.getElementId();
       } catch (e) {
-        throw new Error('Ошибка при получении id элемента: ') + (e);
+        throw new Error("Ошибка при получении id элемента: ") + e;
       }
     },
-    
+
     endCompose() {
       // Setting Attributes
       try {
@@ -311,25 +288,34 @@ export default {
       try {
         this.markAsDraggable();
       } catch (e) {
-        throw new Error('Ошибка при размещении событий: ')+(e);
+        throw new Error("Ошибка при размещении событий: ") + e;
       }
     },
 
     /**
      * Преобразует передаваемые через dataTransfer данные в форму для вставки.
-     * @param event
      */
-    insertComposed(event) {
+    insertComposed() {
       //========= Prepare Compose
       try {
         this.prepareToCompose();
       } catch (e) {
-        console.error('Ошибка при подготовке элемента:', e);
+        console.error("Ошибка при подготовке элемента:", e);
       }
 
-      // Init Paste
+      const isPlaceFree = this.checkPlaceFreedom(false, this.$el, {
+        width: this.w,
+        height: this.h,
+        id: this.title + this.elemId,
+      });
+
+      if (!isPlaceFree) {
+        return;
+      }
+
+      // Paste
       try {
-        this.initElemPaste(event);
+        this.pasteElem();
       } catch (e) {
         console.error("Ошибка во время инициализации элемента: ", e);
         return;
@@ -339,7 +325,11 @@ export default {
       try {
         this.endCompose();
       } catch (e) {
-        console.error('Ошибка при завершении вставки сформированного элемента:', e);
+        console.error(
+            "Ошибка при завершении вставки сформированного элемента:",
+            e
+        );
+        return
       }
 
       electron.ipcRenderer.send("service", {
@@ -363,7 +353,9 @@ export default {
         replaceMe.className = "replaceMe";
         this.$el.appendChild(replaceMe);
       } catch (e) {
-        throw 'createReplacingElem. Не удалось разместить элемент для замены. ' + e;
+        throw (
+            "createReplacingElem. Не удалось разместить элемент для замены. " + e
+        );
       }
     },
     createResizeInstance() {
@@ -373,7 +365,7 @@ export default {
       try {
         resizeInstance = Vue.extend(resizableContainer);
       } catch (e) {
-        throw 'Не удалось создать экземпляр instance resizableContainer. ' + e;
+        throw "Не удалось создать экземпляр instance resizableContainer. " + e;
       }
 
       try {
@@ -392,13 +384,15 @@ export default {
           store,
         });
       } catch (e) {
-        throw 'Не удалось задать параметры для instance resizableContainer. ' + e;
+        throw (
+            "Не удалось задать параметры для instance resizableContainer. " + e
+        );
       }
 
       try {
         compiledHTML = Vue.compile(this.html);
       } catch (e) {
-        throw 'Не удалось скомпилировать html. ' + e;
+        throw "Не удалось скомпилировать html. " + e;
       }
 
       try {
@@ -406,25 +400,26 @@ export default {
           completeElem.$createElement(compiledHTML),
         ];
       } catch (e) {
-        throw 'Не удалось разместить слот в instance resizableContainer. ' + e;
+        throw "Не удалось разместить слот в instance resizableContainer. " + e;
       }
 
       try {
         completeElem.$mount(".replaceMe");
       } catch (e) {
-        throw 'Не удалось установить скомпилированный instance на заменяемом элементе. ' + e;
+        throw (
+            "Не удалось установить скомпилированный instance на заменяемом элементе. " +
+            e
+        );
       }
-
     },
     /**
      * Вставка и рендер элемента в dropZone
-     * @param event
      */
-    pasteElem(event) {
+    pasteElem() {
       try {
         this.createReplacingElem();
       } catch (e) {
-        throw e
+        throw e;
       }
 
       try {
@@ -440,20 +435,18 @@ export default {
      * @param id
      */
     markAsDraggable(id) {
+      let elem;
       try {
         if (!id) {
-          const lastChild = this.$el.lastChild;
-          lastChild.addEventListener("dragstart", this.dragCheck, true);
-          lastChild.addEventListener("dragend", this.dragEnd);
+          elem = this.$el.lastChild;
         } else {
-          const elem = document.getElementById(id);
-          elem.addEventListener("dragstart", this.dragCheck, true);
-          elem.addEventListener("dragend", this.dragEnd);
+          elem = document.getElementById(id);
         }
+        elem.addEventListener("dragstart", this.dragCheck, true);
+        elem.addEventListener("dragend", this.dragEnd);
       } catch (e) {
-        throw 'Не удалось разместить drag event на созданный элемент. ' + e;
+        throw "Не удалось разместить drag event на созданный элемент. " + e;
       }
-
     },
 
     isElemValid(dataTransfer) {
@@ -468,37 +461,56 @@ export default {
       }
     },
 
-    defineElemZone(evt, elem) {
-      if (!this.checkZone(evt, elem)) {
-        this.changeZone(evt, elem);
+    defineElemZone(elem) {
+      if (!this.checkZone(elem)) {
+        this.changeZone(elem);
       }
+      return elem.parentNode.id.replace('zone', '');
     },
 
-    moveElem(evt, elem) {
+    //****
+    moveElem(elem) {
       try {
-        if (!this.checkPlaceFreedom(evt, elem, evt.target, false)) {
-          this.defineElemZone(evt, elem);
-          this.changePlace(evt, elem);
+        if (this.checkPlaceFreedom(elem, this.dropEvt.target, false)) {
+          let zoneId = this.defineElemZone(elem);
+          this.changePlace(elem);
+          const w = parseInt(elem.style.width);
+          const h = parseInt(elem.style.height);
+          let elemHTML = elem.lastChild.outerHTML;
+          const reg = new RegExp(`\\"`, 'gm');
+          elemHTML = elemHTML.replace(reg, `'`);
+
+          electron.ipcRenderer.send('service', {
+            action: 'changeMustache', zone: zoneId, elem: {html: elemHTML, id: elem.id}, style: {
+              pos: {
+                x: this.pastePos.x,
+                y: this.pastePos.y
+              },
+              size: {
+                w: w,
+                h: h
+              }
+            }
+          })
         }
       } catch (e) {
         throw e;
       }
-
     },
 
-    defineDropWay(evt) {
+    defineDropWay() {
       if (this.dataTransfer.prepare) {
         try {
-          this.insertComposed(evt);
+          this.insertComposed();
         } catch (e) {
-          throw 'Ошибка при размещении нового элемента: ' + e;
+          throw "Ошибка при размещении нового элемента: " + e;
         }
       } else {
         try {
           let elem = this.dataTransfer.dragged;
-          this.moveElem(evt, elem);
+          this.moveElem(elem);
         } catch (e) {
-          throw 'Ошибка при перемещении элемента: ' + e;
+          throw "Ошибка при перемещении элемента: " + e;
         }
       }
     },
@@ -507,10 +519,10 @@ export default {
       try {
         this.dataTransfer = this.getDataTransfer();
       } catch (e) {
-        throw ("Не удалось получить данные dataTransfer: ") + e;
+        throw {message: "Не удалось получить данные dataTransfer: " + e, type: 'error'};
       }
       if (!this.isElemValid(this.dataTransfer)) {
-        throw ("Перетаскиваемый объект не является подходящим для вставки.");
+        throw {message: "Перетаскиваемый объект не является подходящим для вставки.", type: 'warning'};
       }
     },
 
@@ -519,15 +531,21 @@ export default {
      * @param evt
      */
     initDrop(evt) {
+      this.dropEvt = evt;
+
       try {
         this.prepareDrop();
       } catch (e) {
-        console.error('Ошибка при подготовке данных prepareDrop:', e);
+        if (e.type === 'error') {
+          console.error("Ошибка при подготовке данных prepareDrop:", e.message);
+        } else if (e.type === 'warning') {
+          console.warn(e.message);
+        }
         return;
       }
 
       try {
-        this.defineDropWay(evt);
+        this.defineDropWay();
       } catch (e) {
         console.error(e);
         return;
@@ -553,7 +571,7 @@ export default {
     },
     dragStart(evt) {
       this.dragged = evt.target;
-      this.setMetaDataTransfer(evt)
+      this.setMetaDataTransfer(evt);
       this.sendDataTransfer({dragged: this.dragged});
       this.changeBordersVisible(true);
     },
@@ -601,9 +619,9 @@ export default {
     },
     isStyleApplied() {
       try {
-        return !this.appliedStyles.some((style) => style === this.style)
+        return !this.appliedStyles.some((style) => style === this.style);
       } catch (e) {
-        throw 'Не удалось определить применен ли стиль. ' + e;
+        throw "Не удалось определить применен ли стиль. " + e;
       }
     },
     /**
@@ -651,7 +669,7 @@ export default {
             a.x > b.x + b.w
         );
       } catch (e) {
-        throw 'Не удалось определить isCollide. ' + e;
+        throw "Не удалось определить isCollide. " + e;
       }
     },
     /**
@@ -687,7 +705,7 @@ export default {
         }
         return result;
       } catch (e) {
-        throw 'checkBounds. Не удалось определить координаты. ' + e;
+        throw "checkBounds. Не удалось определить координаты. " + e;
       }
     },
 
@@ -703,15 +721,15 @@ export default {
           h = options.height;
         }
       } catch (e) {
-        throw 'Не удалось получит размеры элемента. ' + e;
+        throw "Не удалось получит размеры элемента. " + e;
       }
 
       return {w, h};
     },
 
-    getBounds(evt, size) {
+    getBounds(size) {
       try {
-        let paste = this.getPastePosition(evt, 5, size.w, size.h);
+        let paste = this.getPastePosition(5, size.w, size.h);
         return this.checkBounds(paste.x, paste.y, size.w, size.h);
       } catch (e) {
         throw e;
@@ -730,7 +748,7 @@ export default {
     },
 
     isPlaceFreedom(checkingElems, bounds, size) {
-      let result;
+      let isFree;
       for (let check of checkingElems) {
         let checkObj = {
           w: parseInt(check.w),
@@ -739,7 +757,7 @@ export default {
           x: parseInt(check.x),
         };
         try {
-          result = this.isCollide(
+          isFree = !this.isCollide(
               {w: size.w, h: size.h, y: bounds.y, x: bounds.x},
               checkObj
           );
@@ -747,15 +765,16 @@ export default {
           throw e;
         }
 
-        if (result) {
-          return result;
+        if (!isFree) {
+          return isFree;
         }
       }
+      return true;
     },
 
     /**
+     * //****
      * Проверяет, свободно ли пространство для установки объекта и записывает координаты в this.pastePos
-     * @param event
      * @param {Node | Boolean} elem
      * @param zone
      * @param {{width: number, id: string, height: number}} options - опциональный параметр.
@@ -764,10 +783,10 @@ export default {
      * @param {String} options.id - id элемента
      * @returns {boolean}
      */
-    checkPlaceFreedom(evt, elem, zone, options) {
+    checkPlaceFreedom(elem, zone, options) {
       let w;
       let h;
-      try { //****
+      try {
         ({w, h} = this.getElemSize(elem, options));
       } catch (e) {
         throw e;
@@ -775,7 +794,7 @@ export default {
 
       let bounds = {};
       try {
-        bounds = this.getBounds(evt, {w: w, h: h});
+        bounds = this.getBounds({w: w, h: h});
       } catch (e) {
         throw (
             new Error("Ошибка при получении координат для вставки элемента: ") + e
@@ -784,51 +803,48 @@ export default {
 
       let checkingElems = [];
       try {
-        checkingElems = this.getCheckingElems(elem, options, zone)
+        checkingElems = this.getCheckingElems(elem, options, zone);
       } catch (e) {
         throw new Error("Ошибка при получении списка элементов зоны: ") + e;
       }
 
-      let result = false;
+      let isFree = false;
       try {
-        result = this.isPlaceFreedom(checkingElems, bounds, {w: w, h: h});
+        isFree = this.isPlaceFreedom(checkingElems, bounds, {w: w, h: h});
       } catch (e) {
         throw new Error("Ошибка при расчете коллизии: ") + e;
       }
 
-      if (!result) {
+      if (isFree) {
         this.pastePos = bounds;
       }
-      return result;
+      return isFree;
     },
     /**
      * Возвращает результат сравнения id родительского элемента event и elem. Те, поменялась ли зона
-     * @param {Event} e
      * @param {Node} elem
      * @returns {boolean}
      */
-    checkZone(e, elem) {
+    checkZone(elem) {
       const parentZoneId = elem.parentNode.id;
-      const targetZoneId = e.target.id;
+      const targetZoneId = this.dropEvt.target.id;
       return parentZoneId === targetZoneId;
     },
 
     // Position change
     /**
      * Перемещает элемент в dropZone, который является e.target
-     * @param e
      * @param elem
      */
-    changeZone(e, elem) {
-      const targetZone = e.target;
+    changeZone(elem) {
+      const targetZone = this.dropEvt.target;
       targetZone.append(elem);
     },
     /**
      * Устанавливает новые координаты для элемента на основе местоположения курсора
-     * @param event
      * @param {Node} elem
      */
-    changePlace(event, elem) {
+    changePlace(elem) {
       elem.style.left = this.pastePos.x + "px";
       elem.style.top = this.pastePos.y + "px";
     },

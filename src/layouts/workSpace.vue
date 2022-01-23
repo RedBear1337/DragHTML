@@ -174,7 +174,7 @@ export default {
       return {size, pos};
     },
 
-    contextAfterAction(actionName = '') {
+    contextAfterAction(actionTitle = '') {
       this.changeShowContextState(false);
       const {size, pos} = this.getStyleFromResizableContainer();
       const zoneId = this.contextElem.zone.id.replace('zone', '');
@@ -182,12 +182,14 @@ export default {
       let elemHTML = this.contextElem.parent.outerHTML;
       const reg = new RegExp(`\\"`, 'gm');
       elemHTML = elemHTML.replace(reg, `'`);
-      // id, pos, size, zoneId цифрой
 
-      if (actionName !== 'remove element') {
-        electron.ipcRenderer.send('service', {action: 'changeMustache', zone: zoneId, elem: {html: elemHTML, id: elemId}, style: {size: size, pos: pos}});
-      } else {
-        electron.ipcRenderer.send('service', {action: 'removeMustache', zone: zoneId, elem: elemId});
+      switch (actionTitle) {
+        case 'edit':
+          electron.ipcRenderer.send('service', {action: 'changeMustache', zone: zoneId, elem: {html: elemHTML, id: elemId}, style: {size: size, pos: pos}});
+          break
+        case 'remove':
+          electron.ipcRenderer.send('service', {action: 'removeMustache', zone: zoneId, elem: elemId});
+          break
       }
 
     },

@@ -1,6 +1,6 @@
 <template>
   <div class="contextItem" @click="emitAction">
-    <span class="contextItem__name">{{ this.name }}</span>
+    <span class="contextItem__name">{{ this.text }}</span>
   </div>
 </template>
 
@@ -9,14 +9,14 @@
 export default {
   name: "contextMenuItem",
   components: {},
-  props: ['name'],
+  props: ['text'],
   data() {
     return {
     }
   },
   methods: {
     emitAction() {
-      this.$emit('action', this.name);
+      this.$emit('action', this.text);
     }
   },
   computed: {},

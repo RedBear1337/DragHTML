@@ -49,6 +49,7 @@ export class MustacheGenerator {
                     return closeStyle + closeHead;
             }
         }
+
         function container(tagType) {
             switch (tagType) {
                 case "open":
@@ -59,15 +60,18 @@ export class MustacheGenerator {
                     return closeBody;
             }
         }
+
         function endTags(tagType) {
             if (tagType == "close") {
                 const closeHtml = "</html>";
                 return closeHtml;
             }
         }
+
         // return { html, closeHtml, head, style, closeStyle, closeHead, body, closeBody };
-        return { headTags, container, endTags };
+        return {headTags, container, endTags};
     }
+
     /**
      * Инициализация начальной разметки
      * @param {string} maxWidth - максимальная ширина контейнера => 100px
@@ -91,6 +95,7 @@ export class MustacheGenerator {
             throw new Error("Указанная группа стилей не найдена");
         }
     }
+
     /**
      * Возвращает результат проверки наличия класса в локальном списке классов
      * @param {*} className - имя класса
@@ -99,6 +104,7 @@ export class MustacheGenerator {
     isStyleExists(className) {
         return this.classes.some((style) => style.class == className);
     }
+
     /**
      * Возвращает результат проверки наличия свойства style у html тега.
      * @returns {boolean}
@@ -108,6 +114,7 @@ export class MustacheGenerator {
         let result = this.html.search(reg);
         return result > -1;
     }
+
     /**
      * Возвращает результат проверки, является ли элемент зоной.
      * @param {object} elem - элемент
@@ -124,6 +131,7 @@ export class MustacheGenerator {
             );
         }
     }
+
     /**
      * Возвращает результат проверки наличия элемента в существующем списке элементов
      * @param {string} elemName - название элемента
@@ -152,6 +160,7 @@ export class MustacheGenerator {
         }
         return this.elems[elemName];
     }
+
     /**
      * Возвращает список классов для элемента по названию группы стилей
      * @returns {Array}
@@ -169,7 +178,7 @@ export class MustacheGenerator {
             this.styles[this.styleGroupName].styleCode.forEach((prop) => {
                 let existingClass = classes.find((c) => c === prop.class);
                 if (!existingClass) {
-                    classes.push({ class: prop.class, rules: prop.rules });
+                    classes.push({class: prop.class, rules: prop.rules});
                 } else {
                     existingClass.rules += prop.rules;
                 }
@@ -179,6 +188,7 @@ export class MustacheGenerator {
         }
         return classes;
     }
+
     /**
      * Возвращает регулярное выражение для поиска style="... или ...>
      * @param {string} type - 'add' | 'insert'
@@ -193,6 +203,7 @@ export class MustacheGenerator {
             throw new Error("Указанный тип не найден");
         }
     }
+
     /**
      * Возвращает index символа в html, найденный по регулярному выражению
      * @param {RegExp} regExp
@@ -206,7 +217,6 @@ export class MustacheGenerator {
         return index;
     }
 
-    
 
     /**
      * Возвращает зону из локального списка зон
@@ -238,6 +248,7 @@ export class MustacheGenerator {
             }
         }
     }
+
     /**
      * Добавляет элемент в локальную зону
      * @param {string} zoneId - номер зоны
@@ -251,7 +262,7 @@ export class MustacheGenerator {
             throw new Error("Ошибка при проверке списка зон: ") + e;
         }
         try {
-            zone.items.push({ id: elemId, html: this.html });
+            zone.items.push({id: elemId, html: this.html});
         } catch (e) {
             throw new Error("Ошибка при добавлении элементов в зону: ") + e;
         }
@@ -266,8 +277,8 @@ export class MustacheGenerator {
         } catch (e) {
             throw new Error("Ошибка при проверке списка зон: ") + e;
         }
-        // html и id. html ранее наполнялся стилями с коордлинатами и размерами из resizableContainer
-        let mustacheElem = zone.items.find(item=>item.id === elem.id);
+        // html и id. html ранее наполнялся стилями с координатами и размерами из resizableContainer
+        let mustacheElem = zone.items.find(item => item.id === elem.id);
         this.html = elem.html;
 
         this.insertStyleProperties(style);
@@ -282,7 +293,7 @@ export class MustacheGenerator {
         } catch (e) {
             throw new Error("Ошибка при проверке списка зон: ") + e;
         }
-        zone.items = zone.items.filter(item=>item.id !== elemId);
+        zone.items = zone.items.filter(item => item.id !== elemId);
     }
 
     //============ Zone Push
@@ -298,6 +309,7 @@ export class MustacheGenerator {
             items: [],
         });
     }
+
     /**
      * Добавляет класс зоны в список классов
      * @param {object} zone
@@ -373,7 +385,7 @@ export class MustacheGenerator {
      */
     extractElemData(elem) {
         try {
-            ({ htmlCode: this.html, style: this.styleGroupName } =
+            ({htmlCode: this.html, style: this.styleGroupName} =
                 this.getElemByName(elem.name));
             this.tempStyleGroup = this.getStyleGroupByName();
         } catch (e) {
@@ -460,8 +472,9 @@ export class MustacheGenerator {
      * @returns {{ [key]: value }}
      */
     wrapToObj(key, value) {
-        return { [key]: value };
+        return {[key]: value};
     }
+
     /**
      * Возвращает массив объектов с контентом, находящися между открывающим и закрывающим тегом функции cupFunc
      * @param {function} cupFunc - функция для обёртки принимающая аргумент 'close' | 'open'
@@ -510,6 +523,7 @@ export class MustacheGenerator {
 
         return zones;
     }
+
     /**
      * Возвращает массив классов
      * @returns {Array}
@@ -604,12 +618,12 @@ export class MustacheGenerator {
 let viewJson = {
     // Template должен генерироваться по шаблону объекта здесь представленного, и наполняться в соответствии с выбранным языком(/разметки)
     headTags: [
-        { tag: "<html lang='en'>" },
-        { tag: "<head><meta charset='utf-8'><title>dragHTML</title>" },
-        { tag: "<style type='text/css'>" },
+        {tag: "<html lang='en'>"},
+        {tag: "<head><meta charset='utf-8'><title>dragHTML</title>"},
+        {tag: "<style type='text/css'>"},
         // Classes...
-        { tag: "</style>" },
-        { tag: "</head>" },
+        {tag: "</style>"},
+        {tag: "</head>"},
     ],
 
     container: [
@@ -617,10 +631,10 @@ let viewJson = {
             tag: "<body><div class='container' style='width: 100%; max-width: 574px; margin: 0 auto; display: flex; flex-flow: column; align-items: flex-start; justify-content: flex-start;'>",
         },
         // zones...
-        { tag: "</div></body>" },
+        {tag: "</div></body>"},
     ],
 
-    endTags: [{ tag: "</html>" }],
+    endTags: [{tag: "</html>"}],
 };
 
 /* Mustache template

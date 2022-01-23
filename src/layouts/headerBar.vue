@@ -7,7 +7,6 @@
         <customBtn class="headerBar__btn short" :short="true"
                    :data="{img: 'dropZone', alt: 'addZone', func: this.addZone}"/>
       </div>
-      <journalNav class="headerBar__group"/>
     </div>
     <!-- Title -->
     <span class="headerBar__title">
@@ -28,11 +27,10 @@
 import electron from "electron";
 
 import customBtn from "@/components/customBtn";
-import journalNav from "@/components/header/journalNav";
 
 export default {
   name: "headerBar",
-  components: {customBtn, journalNav},
+  components: {customBtn},
   data: function () {
     return {
       exportData: {}

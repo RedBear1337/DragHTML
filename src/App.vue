@@ -1,16 +1,22 @@
 <template>
   <div id="app">
-
-
     <!-- Main content -->
+<!--    <settings/>-->
+    <modalBackground :type="'blur'">
+      <welcome slot="win"/>
+    </modalBackground>
     <router-view/>
   </div>
 </template>
 
 <script>
+import modalBackground from "./components/modal/modalBackground";
+import settings from "./components/header/settings";
+import welcome from "./layouts/welcome";
+
 export default {
   name: "app",
-  components: {},
+  components: {modalBackground, settings, welcome},
   data: function () {
     return {}
   },
