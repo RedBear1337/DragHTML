@@ -16,7 +16,7 @@ DragHTML - это приложение для генерации макетов 
 
 **Приложение находится на этапе разработки**
 
-Предварительный [дизаин](https://www.figma.com/file/GEfE3P7QSNtiYEZBXNsfRr/DragHTML?node-id=0%3A1).
+Предварительный [дизаин](https://www.figma.com/file/5pwnjqI2U9BggNjlKBAEfX/DragHTML?node-id=1%3A2).
 
 ![Внешний вил приложения](https://user-images.githubusercontent.com/95413624/150765700-ef2db929-e2e1-4d7f-b22b-71b1d167e5ca.JPG)
 
